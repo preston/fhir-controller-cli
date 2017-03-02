@@ -1,6 +1,6 @@
 # Health Services Platform Command Line Interface
 
-The HSP Command Line Interface provides a way to interact with your public HSPC Marketplace (or compatible alternative) account from an on-premise system. This library `hsp`, a cross-platform executable providing a:
+The `hsp` command line agent for interacting with a remote HSPC Marketplace (or compatible) deployment from an on-premise or cloud host. This cross-platform executable provides a:
 
 * Command line interface to a Marketplace deployment.
 * "Agent" mode for real-time routing of remote Marketplace commands to a local Docker engine, swarm, or other orchestration agent.
