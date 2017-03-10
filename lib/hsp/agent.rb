@@ -1,5 +1,6 @@
-require 'action_cable_client'
-
+require 'space_elevator'
+require 'eventmachine'
+require 'em-websocket-client'
 require 'jwt'
 
 module Hsp
@@ -12,28 +13,44 @@ module Hsp
         def initialize(marketplace, orchestrator, platform_id, platform_secret)
             self.marketplace = marketplace
             self.orchestrator = orchestrator
-			self.platform_id = platform_id
-			self.platform_secret = platform_secret
+            self.platform_id = platform_id
+            self.platform_secret = platform_secret
         end
 
-        def run
+        def run(platform_id, pings = false)
             EventMachine.run do
-				# payload = JWT.encode({foo: :bar}, self.platform_secret)
-                uri = marketplace.websocket_url #+ '/' + self.platform_id
- 				client = ActionCableClient.new(uri, 'PlatformChannel')
-				client.connected do
-					puts "Connected to the marketplace at #{uri}."
-				end
-				client.received do |m|
-					puts m
-				end
-				client.subscribed do
-					puts "Successfully subscribed."
-				end
-
-
+                url = marketplace.websocket_url
+                client = SpaceElevator::Client.new(url) do
+                    puts 'Disconnected. Exiting...'
+                    EventMachine.stop_event_loop
+                end
+                client.connect do |msg|
+                    case msg['type']
+                    when 'welcome'
+                        puts 'The server says "welcome".'
+                        client.subscribe(channel: 'ChatChannel') do |chat|
+                            puts "Received Chat Event: #{chat}"
+                            if chat['type'] == 'confirm_subscription'
+                                puts "Subscription to #{chat['identifier']['channel']} confirmed!"
+                                client.publish({channel: 'ChatChannel'}, {subject: 'Hi', text: "What's up, y'all!?!?"})
+                            end
+                        end
+                        client.subscribe(channel: 'PlatformChannel', platform_id: platform_id) do |m|
+                            puts "Received Platform #{platform_id} Event: #{m}"
+                            case m['type']
+                            when 'confirm_subscription'
+                                # We don't need to dispatch this, I suppose.
+                            else
+                                self.orchestrator.dispatch(m)
+                            end
+                        end
+                    when 'ping'
+                        puts 'The server just pinged us.' if pings
+                    else
+                        puts msg
+                    end
+                end
             end
-              # puts 'This is not yet implemented, and will wait indefinitely.'
-          end
+        end
     end
 end

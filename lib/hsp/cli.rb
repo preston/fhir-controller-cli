@@ -33,19 +33,21 @@ module Hsp
             desc 'users SUBCOMMAND ..ARGS', 'Marketplace users.'
             subcommand 'users', Hsp::Cli::Users
 
-            desc 'agent', 'Minion mode for commands issued by the marketplace.'
+            desc 'agent', 'Agent mode for processing commands pushed by a remote marketplace.'
             option :websocket_url, type: :string
             option :rest_url, type: :string
             option :platform_id, required: true, type: :string
             option :platform_secret, required: true, type: :string
+            option :show_pings, type: :boolean
             def agent
                 m = Marketplace.new
                 m.websocket_url = options[:websocket_url] if options[:websocket_url]
                 m.rest_url = options[:rest_url] if options[:rest_url]
                 response = HTTParty.get(m.services_url(options[:service_id]), headers: Hsp::Client.headers)
                 json = JSON.parse(response.body)
+                # TODO Don't hardcode the Docker API implementation! For now, though, it's fine.
                 agent = Hsp::Agent.new(m, Hsp::Orchestrator::Docker.new, options[:platform_id], options[:platform_secret]) # TODO: Make agnostic to orchestration platform
-                agent.run
+                agent.run(options[:platform_id], !!options[:show_pings])
             end
         end
     end
