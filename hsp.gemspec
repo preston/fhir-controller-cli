@@ -25,6 +25,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "space_elevator", '>= 0.2.0'
   spec.add_dependency "docker-api", '>= 1.33.2'
   spec.add_dependency "eventmachine", '>= 1.2.3'
+  spec.add_dependency "em-websocket-client", '>= 0.1.2'
 
   spec.add_development_dependency "bundler", "~> 1.14"
   spec.add_development_dependency "rake", "~> 10.0"
