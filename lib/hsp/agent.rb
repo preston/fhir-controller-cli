@@ -1,7 +1,6 @@
 require 'space_elevator'
 require 'eventmachine'
 require 'em-websocket-client'
-require 'jwt'
 
 module Hsp
     class Agent
