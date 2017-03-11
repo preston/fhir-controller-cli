@@ -49,6 +49,11 @@ module Hsp
                 agent = Hsp::Agent.new(m, Hsp::Orchestrator::Docker.new, options[:platform_id], options[:platform_secret]) # TODO: Make agnostic to orchestration platform
                 agent.run(options[:platform_id], !!options[:show_pings])
             end
+
+            desc 'version', 'Prints the client version number.'
+            def version
+                puts Hsp::VERSION
+            end
         end
     end
 end
