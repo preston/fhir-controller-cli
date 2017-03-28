@@ -54,9 +54,12 @@ module Hsp
                         )
                         # require 'byebug'
                         # byebug
-                        c = container.run(nil)
-                        puts "CONTAINER: #{c.info['Ports']}"
-                        # TODO Implement logging of event details back to the server side!
+                        # FIXME HACK HORRIBLE temporary workaround for not knowing how to make this non-blocking. :_(
+                        crap = Thread.new {
+                            c = container.run(nil)
+                            puts "CONTAINER: #{c.info['Ports']}"
+                            # TODO Implement logging of event details back to the server side!
+                        }
                     else
                         puts "Image does not exist. Are you sure #{label} is correct and accessible?"
                     end
