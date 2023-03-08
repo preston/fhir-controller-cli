@@ -1,7 +1,7 @@
-module Hsp
-    class Marketplace
-        DEFAULT_REST_URL = 'https://marketplace-server.hspconsortium.org'.freeze
-        DEFAULT_WEBSOCKET_URL = 'wss://marketplace-server.hspconsortium.org/websocket'.freeze
+module Marketplace
+    class Client
+        DEFAULT_REST_URL = 'https://marketplace-server.prestonlee.com'.freeze
+        DEFAULT_WEBSOCKET_URL = 'wss://marketplace-server.prestonlee.com/websocket'.freeze
         attr_accessor :rest_url
         attr_accessor :websocket_url
 
@@ -10,12 +10,12 @@ module Hsp
             self.websocket_url = websocket_url
         end
 
-        def services_url(id = nil)
-            rest_url + '/services' + (id.nil? ? '' : "/#{id}")
+        def products_url(id = nil)
+            rest_url + '/products' + (id.nil? ? '' : "/#{id}")
         end
 
-        def builds_url(service_id, build_id = nil)
-            services_url(service_id) + '/builds' + (build_id.nil? ? '' : "/#{build_id}")
+        def builds_url(product_id, build_id = nil)
+            products_url(product_id) + '/builds' + (build_id.nil? ? '' : "/#{build_id}")
         end
 
         def users_url(id = nil)

@@ -1,9 +1,10 @@
 require 'thor'
 require 'httparty'
 
-module Hsp
+module Marketplace
     module Cli
         class Platforms < Thor
+
             no_commands do
                 def print_platforms(json)
                     puts "\n#{json['total_results']} total platforms found."
@@ -33,7 +34,7 @@ module Hsp
                 }
                 query[:page] = options[:page].to_i if options[:page]
                 query[:per_page] = options[:per_page].to_i if options[:per_page]
-                response = HTTParty.get(m.platforms_url(options[:user_id]), query: query, headers: Hsp::Client.headers)
+                response = HTTParty.get(m.platforms_url(options[:user_id]), query: query, headers: Marketplace::Client.headers)
                 json = JSON.parse(response.body)
                 # puts json
                 print_platforms(json)
@@ -44,7 +45,7 @@ module Hsp
             option :platform_id, required: true, type: :string
             def show
                 m = Marketplace.new
-                response = HTTParty.get(m.platforms_url(options[:user_id], options[:platform_id]), headers: Hsp::Client.headers)
+                response = HTTParty.get(m.platforms_url(options[:user_id], options[:platform_id]), headers: Marketplace::Client.headers)
                 json = JSON.parse(response.body)
                 # puts json
                 puts ''

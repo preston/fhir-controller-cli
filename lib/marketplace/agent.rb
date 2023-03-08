@@ -2,7 +2,7 @@ require 'space_elevator'
 require 'eventmachine'
 require 'em-websocket-client'
 
-module Hsp
+module Marketplace
     class Agent
         attr_accessor :marketplace
         attr_accessor :orchestrator

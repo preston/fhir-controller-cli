@@ -1,4 +1,0 @@
-#!/usr/bin/env ruby
-
-require_relative File.join('..', 'lib', 'hsp')
-Hsp::Cli::Main.start

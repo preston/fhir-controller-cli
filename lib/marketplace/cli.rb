@@ -3,10 +3,10 @@ require 'httparty'
 
 require_relative 'cli/users'
 require_relative 'cli/platforms'
-require_relative 'cli/services'
+require_relative 'cli/products'
 require_relative 'cli/builds'
 
-module Hsp
+module Marketplace
     class Client
         def self.headers
             { 'Accept' => 'application/json' }
@@ -20,17 +20,17 @@ module Hsp
             #     puts url
             # end
 
-            desc 'services SUBCOMMAND ..ARGS', 'Available marketplace services.'
-            subcommand 'services', Hsp::Cli::Services
+            desc 'products SUBCOMMAND ..ARGS', 'Available marketplace products.'
+            subcommand 'products', Marketplace::Cli::Products
 
-            desc 'builds SUBCOMMAND ..ARGS', 'Builds of a given service.'
-            subcommand 'builds', Hsp::Cli::Services
+            desc 'builds SUBCOMMAND ..ARGS', 'Builds of a given product.'
+            subcommand 'builds', Marketplace::Cli::Products
 
             desc 'platforms SUBCOMMAND ..ARGS', 'Register platform(s) for known users.'
-            subcommand 'platforms', Hsp::Cli::Platforms
+            subcommand 'platforms', Marketplace::Cli::Platforms
 
             desc 'users SUBCOMMAND ..ARGS', 'Marketplace users.'
-            subcommand 'users', Hsp::Cli::Users
+            subcommand 'users', Marketplace::Cli::Users
 
             desc 'agent', 'Agent mode for processing commands pushed by a remote marketplace.'
             option :websocket_url, type: :string
@@ -42,16 +42,16 @@ module Hsp
                 m = Marketplace.new
                 m.websocket_url = options[:websocket_url] if options[:websocket_url]
                 m.rest_url = options[:rest_url] if options[:rest_url]
-                response = HTTParty.get(m.services_url(options[:service_id]), headers: Hsp::Client.headers)
+                response = HTTParty.get(m.products_url(options[:product_id]), headers: Marketplace::Client.headers)
                 json = JSON.parse(response.body)
                 # TODO Don't hardcode the Docker API implementation! For now, though, it's fine.
-                agent = Hsp::Agent.new(m, Hsp::Orchestrator::Docker.new, options[:platform_id], options[:platform_secret]) # TODO: Make agnostic to orchestration platform
+                agent = Marketplace::Agent.new(m, Marketplace::Orchestrator::Docker.new, options[:platform_id], options[:platform_secret]) # TODO: Make agnostic to orchestration platform
                 agent.run(options[:platform_id], !!options[:show_pings])
             end
 
             desc 'version', 'Prints the client version number.'
             def version
-                puts Hsp::VERSION
+                puts Marketplace::VERSION
             end
         end
     end

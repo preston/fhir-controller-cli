@@ -1,18 +1,17 @@
-
 require 'thor'
 require 'httparty'
 
-module Hsp
+module Marketplace
     module Cli
-        class Services < Thor
+        class Builds < Thor
             no_commands do
-                def print_services(json)
-                    puts "\n#{json['total_results']} total services found."
+                def print_builds(json)
+                    puts "\n#{json['total_results']} total builds found."
                     puts "Page #{json['current_page']} of #{json['total_pages']} (Previous: #{json['previous_page'].nil? ? 'N/A' : json['previous_page']}, Next: #{json['next_page'].nil? ? 'N/A' : json['next_page']})"
-                    puts "ID\t\t\t\t\tName - Description"
+                    puts "ID\t\t\t\t\tName\t\tSecret"
                     puts_bar
                     json['results'].each do |n|
-                        puts "#{n['id']}\t#{n['name']} - #{n['description'][0..60]}..."
+                        puts "#{n['id']}\t#{n['name']}\t#{n['public_key']}"
                     end
                     puts "\n"
                 end
@@ -22,7 +21,8 @@ module Hsp
                 end
             end
 
-            desc 'list', 'Lists all available services'
+            desc 'list', 'Lists builds of a given product'
+            option :product_id, required: true, type: :string
             option :page, type: :numeric
             option :per_page, type: :numeric
             def list
@@ -33,31 +33,33 @@ module Hsp
                 }
                 query[:page] = options[:page].to_i if options[:page]
                 query[:per_page] = options[:per_page].to_i if options[:per_page]
-                response = HTTParty.get(m.services_url, query: query, headers: Hsp::Client.headers)
+                response = HTTParty.get(m.builds_url(options[:product_id]), query: query, headers: Marketplace::Client.headers)
                 json = JSON.parse(response.body)
                 # puts json
-                print_services(json)
-            end
+                print_builds(json)
+              end
 
-            desc 'show', 'Print details on a given service'
-            option :service_id, required: true, type: :string
+            desc 'show', 'Print details on a specific build.'
+            option :product_id, required: true, type: :string
+            option :build_id, required: true, type: :string
             def show
                 m = Marketplace.new
-                response = HTTParty.get(m.services_url(options[:service_id]), headers: Hsp::Client.headers)
+                response = HTTParty.get(m.builds_url(options[:product_id], options[:build_id]), headers: Marketplace::Client.headers)
                 json = JSON.parse(response.body)
                 # puts json
                 puts ''
                 puts json['name']
                 puts_bar
-                puts json['description']
-                puts "URI: #{json['uri']}"
-                puts "Support URL: #{json['support_url']}"
-                puts "License: #{json['license_id']}"
+                #   puts json['description']
+                puts "ID: #{json['id']}"
+                puts "Product ID: #{json['product_id']}"
+                puts "Secret: #{json['public_key']}"
                 puts "Created: #{json['created_at']}"
                 puts "Updated: #{json['updated_at']}"
-                puts "Published: #{json['published_at']}"
+                puts "URL: #{json['url']}"
+                puts "Path: #{json['path']}"
                 puts ''
             end
         end
-  end
+    end
 end

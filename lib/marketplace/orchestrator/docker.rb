@@ -1,6 +1,6 @@
 require 'docker'
 
-module Hsp
+module Marketplace
     module Orchestrator
         class Docker
             attr_accessor :url
