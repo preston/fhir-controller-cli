@@ -1,5 +1,7 @@
 # FHIR Controller Command Line Interface (CLI) Utilities
 
+[![Build Status](https://ci.prestonlee.com/api/badges/preston/fhir-controller-cli/status.svg)](https://ci.prestonlee.com/preston/fhir-controller-cli)
+
 The `fhir-controller` command line utility for interacting with a remote [FHIR Controller]() (or compatible) deployments from an on-premise or cloud host. This cross-platform executable provides a:
 
 * Command line interface supplement to a FHIR Controller deployment.
