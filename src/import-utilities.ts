@@ -7,11 +7,11 @@ import { Bundle, AuditEvent } from 'fhir/r4';
 
 export class ImportUtilities {
 	private dryRun: boolean = false;
-	private debug: boolean = false;
+	private verbose: boolean = false;
 
 	constructor(dryRun: boolean = false, debug: boolean = false) {
 		this.dryRun = dryRun;
-		this.debug = debug;
+		this.verbose = debug;
 	}
 
 	async pollAndImportIndefinitely(stackJsonUrl: string, fhirBaseUrl: string, auditEventSystem: string, auditEventCode: string, pollInterval: string): Promise<void> {
@@ -30,7 +30,10 @@ export class ImportUtilities {
 				// 	console.debug(JSON.stringify(response.data, null, 2));
 				// }
 			} catch (error: any) {
-				console.error(`Error polling FHIR server.`, error.cause);
+				console.error(`Error polling FHIR server.`);
+				if(this.verbose) {
+					console.error(error.cause);
+				}
 			}
 			const intervalMs = Number(pollInterval) * 1000;
 			await new Promise(resolve => setTimeout(resolve, intervalMs));
