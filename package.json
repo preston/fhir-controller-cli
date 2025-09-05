@@ -1,0 +1,52 @@
+{
+  "name": "@skycapp/cli",
+  "version": "1.0.1",
+  "description": "Skycapp CLI utilities.",
+  "main": "index.js",
+  "bin": {
+    "skycapp": "./build/bin/skycapp.js"
+  },
+  "scripts": {
+    "clean": "rm -rf ./build",
+    "compile": "npx tsc && chmod +x ./build/bin/*",
+    "copy-files": "mkdir -p build/assets && cp -R src/assets/ build/assets/",
+    "build": "npm run clean && npm run compile && npm run copy-files",
+    "package": "npm run build && npm pack",
+    "test": "jest",
+    "test-watch": "nodemon --watch '{src,test}/**' --ext 'ts,md,json' --exec 'npx jest'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/preston/skycapp-cli.git"
+  },
+  "keywords": [
+    "Clinical",
+    "Quality",
+    "Language",
+    "CQL",
+    "CDS",
+    "FHIR",
+    "cql",
+    "HAPI"
+  ],
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/preston/skycapp-cli/issues"
+  },
+  "homepage": "https://github.com/preston/skycapp-cli#README",
+  "dependencies": {
+    "@skycapp/core": "^2.11.6",
+    "axios": "^1.11.0",
+    "commander": "^14.0.0",
+    "csv-parser": "^3.2.0",
+    "ts-progress": "^0.1.9"
+  },
+  "devDependencies": {
+    "@types/fhir": "^0.0.41",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.3.1",
+    "nodemon": "^3.1.10",
+    "ts-jest": "^29.4.1",
+    "ts-node": "^10.9.2"
+  }
+}

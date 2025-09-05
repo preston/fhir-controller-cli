@@ -1,6 +1,6 @@
-# Marketplace Agent and Command Line Interface
+# Skycapp Command Line Interface (CLI) Utilities
 
-The `marketplace` command line utility for interacting with a remote HL7 Marketplace (or compatible) deployment from an on-premise or cloud host. This cross-platform executable provides a:
+The `skycapp` command line utility for interacting with a remote Skycapp (or compatible) deployments from an on-premise or cloud host. This cross-platform executable provides a:
 
 * Command line interface to a Marketplace deployment.
 * "Agent" mode for real-time routing of remote Marketplace commands to a local Docker engine, swarm, or other orchestration agent.

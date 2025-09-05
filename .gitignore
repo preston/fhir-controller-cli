@@ -1,13 +1,20 @@
-.DS_Store
+**/.DS_Store
+node_modules/
+/build
+/output
 
-/.bundle/
-/.yardoc
-/Gemfile.lock
-/_yardoc/
-/coverage/
-/doc/
-/pkg/
-/spec/reports/
-/tmp/
+# Logs
+logs
+*.log
+npm-debug.log*
 
-.byebug_history
+# Temporary files
+tmp/
+doc/sbom.*
+testcases/
+
+# Build
+*.tgz
+
+data/
+paper/
