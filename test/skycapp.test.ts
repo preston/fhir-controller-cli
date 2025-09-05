@@ -26,7 +26,7 @@ describe('`server` subcommand', () => {
 
 function cli(args: string[], cwd: string = __dirname) {
     return new Promise<{ code: number, error: ExecException | null, stdout: string, stderr: string }>(resolve => {
-        exec(`ts-node ${path.resolve('src/bin/skycapp.ts')} ${args.join(' ')}`,
+        exec(`ts-node ${path.resolve('src/bin/fhir-controller.ts')} ${args.join(' ')}`,
             { cwd },
             (error, stdout, stderr) => {
                 resolve({

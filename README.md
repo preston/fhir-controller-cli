@@ -1,32 +1,29 @@
-# Skycapp Command Line Interface (CLI) Utilities
+# FHIR Controller Command Line Interface (CLI) Utilities
 
-The `skycapp` command line utility for interacting with a remote Skycapp (or compatible) deployments from an on-premise or cloud host. This cross-platform executable provides a:
+The `fhir-controller` command line utility for interacting with a remote [FHIR Controller]() (or compatible) deployments from an on-premise or cloud host. This cross-platform executable provides a:
 
-* Command line interface to a Marketplace deployment.
-* "Agent" mode for real-time routing of remote Marketplace commands to a local Docker engine, swarm, or other orchestration agent.
+* Command line interface supplement to a FHIR Controller deployment.
+* Ability to upload a directory of Synthea FHIR output directly to a FHIR server in the correct dependency sequence. 
+* "Agent" mode for real-time routing of remote commands to a local Docker engine, swarm, or other orchestration agent.
 
-## Installation
 
-A recent version of Ruby is required. We recommend the current stable version.
+# Running via Docker Image
 
-```ruby
-gem install marketplace
+```sh
+docker run --rm p3000/fhir-controller-cli:latest help
 ```
 
-Built-in help is provided in each respective binary:
+# Development & Testing Usage
 
-    $ marketplace --help
+```sh
+# Install TypeScript Node runner for convenience
+npm i -g ts-node
+# Run the CLI directly from source.
+ts-node src/bin/fhir-controller.ts help
+```
 
 
-## Development
-
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
-
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
-
-## License
-
-This software is released under the Apache 2.0 license. Copyright (c) Preston Lee.
+This software is released under the Apache 2.0 license. Copyright © 2017+ Preston Lee.
 
 ## Contributing
 

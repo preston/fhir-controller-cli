@@ -6,11 +6,8 @@ import path from 'path';
 import { program } from 'commander';
 import axios from 'axios';
 
-import { Bundle, AuditEvent } from 'fhir/r4';
 import { SyntheaUtilities } from '../synthea-utilities';
 import { ImportUtilities } from '../import-utilities';
-
-// import {start, stop}  from 'marky';
 
 
 let dryRun = false;
@@ -20,7 +17,7 @@ const packageJsonObject = JSON.parse(packageJson);
 const version = packageJsonObject.version;
 
 const cli = program.version(version)
-	.description('Skycapp CLI utilities.');
+	.description('FHIR Controller CLI utilities.');
 
 cli
 	.command('poll-auditevent-and-trigger-import')

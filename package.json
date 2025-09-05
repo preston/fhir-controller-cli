@@ -1,10 +1,10 @@
 {
-  "name": "@skycapp/cli",
+  "name": "fhir-controller-cli",
   "version": "1.0.1",
-  "description": "Skycapp CLI utilities.",
+  "description": "FHIR Controller CLI utilities.",
   "main": "index.js",
   "bin": {
-    "skycapp": "./build/bin/skycapp.js"
+    "fhir-controller": "./build/bin/fhir-controller.js"
   },
   "scripts": {
     "clean": "rm -rf ./build",
@@ -17,7 +17,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/preston/skycapp-cli.git"
+    "url": "git+https://github.com/preston/fhir-controller-cli.git"
   },
   "keywords": [
     "Clinical",
@@ -31,11 +31,10 @@
   ],
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/preston/skycapp-cli/issues"
+    "url": "https://github.com/preston/fhir-controller-cli/issues"
   },
-  "homepage": "https://github.com/preston/skycapp-cli#README",
+  "homepage": "https://github.com/preston/fhir-controller-cli#README",
   "dependencies": {
-    "@skycapp/core": "^2.11.6",
     "axios": "^1.11.0",
     "commander": "^14.0.0",
     "csv-parser": "^3.2.0",

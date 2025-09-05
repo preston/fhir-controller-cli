@@ -11,4 +11,4 @@ RUN npm i
 COPY . .
 RUN npm run build --production
 
-ENTRYPOINT [ "node", "build/bin/skycapp.js" ]
+ENTRYPOINT [ "node", "build/bin/fhir-controller.js" ]
