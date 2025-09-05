@@ -8,20 +8,25 @@ import { Bundle, AuditEvent } from 'fhir/r4';
 export class ImportUtilities {
 	private dryRun: boolean = false;
 	private verbose: boolean = false;
+	private isCancelled: boolean = false;
 
 	constructor(dryRun: boolean = false, debug: boolean = false) {
 		this.dryRun = dryRun;
 		this.verbose = debug;
 	}
 
+	cancel() {
+		this.isCancelled = true;
+	}
+
 	async pollAndImportIndefinitely(stackJsonUrl: string, fhirBaseUrl: string, auditEventSystem: string, auditEventCode: string, pollInterval: string): Promise<void> {
-		while (true) {
+		while (!this.isCancelled) {
 			try {
 				const url = fhirBaseUrl + '/AuditEvent?type=' + auditEventSystem + '|' + auditEventCode;
 				const response = await axios.get<Bundle>(url);
 				const now = new Date().toISOString();
 				if (typeof response.data.total !== 'undefined' && response.data.total > 0) {
-					console.info(`${now}: Found ${response.data.total} resources. No action needed.`);
+					console.info(`${now}: Found ${response.data.total} matching AuditEvent resources. No action needed.`);
 				} else {
 					console.info(`${now}: No resources found. Triggering functions.`);
 					await this.triggerImport(stackJsonUrl, fhirBaseUrl, auditEventSystem, auditEventCode);
@@ -35,6 +40,12 @@ export class ImportUtilities {
 					console.error(error.cause);
 				}
 			}
+			
+			if (this.isCancelled) {
+				console.info('Polling cancelled. Exiting...');
+				break;
+			}
+			
 			const intervalMs = Number(pollInterval) * 1000;
 			await new Promise(resolve => setTimeout(resolve, intervalMs));
 		}
@@ -138,6 +149,7 @@ export class ImportUtilities {
 				console.warn(`[SKIP] Loader "${item.loader}" not supported for "${item.name}" (${filePath})`);
 			}
 		}
+		console.info(`[SUCCESS] Imported ${dataFiles.length} resources to ${fhirBaseUrl}`);
 		const ae = await this.createImportAuditEvent(fhirBaseUrl, auditEventSystem, auditEventCode);
 		return ae;
 	}

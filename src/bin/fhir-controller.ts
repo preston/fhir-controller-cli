@@ -12,6 +12,9 @@ import { ImportUtilities } from '../import-utilities';
 
 let dryRun = false;
 let verbose = false;
+let isShuttingDown = false;
+let activeOperations: Set<Promise<any>> = new Set();
+let importUtils: ImportUtilities | null = null;
 const packageJson = fs.readFileSync(path.join(__dirname, '..', '..', 'package.json'), 'utf8');
 const packageJsonObject = JSON.parse(packageJson);
 const version = packageJsonObject.version;
@@ -46,8 +49,10 @@ cli
 					console.debug(stack);
 				}
 				console.info(`Starting polling ${fhirBaseUrl} AuditEvents at ${pollInterval} interval.`);
-				const importUtils = new ImportUtilities(dryRun, verbose);
-				importUtils.pollAndImportIndefinitely(stackJsonUrl, fhirBaseUrl, auditEventSystem, auditEventCode, pollInterval);
+				importUtils = new ImportUtilities(dryRun, verbose);
+				const pollingPromise = importUtils.pollAndImportIndefinitely(stackJsonUrl, fhirBaseUrl, auditEventSystem, auditEventCode, pollInterval);
+				activeOperations.add(pollingPromise);
+				pollingPromise.finally(() => activeOperations.delete(pollingPromise));
 			}
 		}).catch(error => {
 			console.error(`Error fetching stack.json file. Please check the URL and try again. This is fatal.`);
@@ -68,9 +73,62 @@ cli.command('synthea-upload')
 		}
 		const sDirectory = safeFilePathFor(directory);
 		const syntheaUtils = new SyntheaUtilities(dryRun);
-		await syntheaUtils.uploadSyntheaDirectory(sDirectory, fhirUrl);
+		const uploadPromise = syntheaUtils.uploadSyntheaDirectory(sDirectory, fhirUrl);
+		activeOperations.add(uploadPromise);
+		uploadPromise.finally(() => activeOperations.delete(uploadPromise));
+		await uploadPromise;
 	});
 
+
+// Handle SIGINT signal for graceful shutdown
+process.on('SIGINT', () => {
+	console.info('Received SIGINT signal. Shutting down gracefully...');
+	shutdown();
+});
+
+// Handle SIGTERM signal for graceful shutdown
+process.on('SIGTERM', () => {
+	console.info('Received SIGTERM signal. Shutting down gracefully...');
+	shutdown();
+});
+
+function shutdown() {
+	if (isShuttingDown) {
+		console.info('Already shutting down, forcing exit...');
+		process.exit(1);
+	}
+		isShuttingDown = true;
+	
+	// Cancel the import utilities if it exists
+	if (importUtils) {
+		console.info('Cancelling polling operation...');
+		importUtils.cancel();
+	}
+	
+	if (activeOperations.size === 0) {
+		console.info('No active operations to cancel. Exiting...');
+		process.exit(0);
+	}
+	
+	console.info(`Cancelling ${activeOperations.size} active operations...`);
+	
+	// Wait for all operations to complete or timeout after 10 seconds
+	Promise.allSettled(Array.from(activeOperations))
+		.then(() => {
+			console.info('All operations completed. Exiting...');
+			process.exit(0);
+		})
+		.catch(() => {
+			console.info('Some operations failed to complete. Exiting...');
+			process.exit(0);
+		});
+	
+	// Force exit after 10 seconds if operations don't complete
+	setTimeout(() => {
+		console.warn('Operations did not complete in time. Forcing exit...');
+		process.exit(1);
+	}, 3000);
+}
 
 program.parse(process.argv);
 
