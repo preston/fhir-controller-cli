@@ -16,5 +16,8 @@ testcases/
 # Build
 *.tgz
 
+# IDE and editor files
+.cursorrules
+
 data/
 paper/
