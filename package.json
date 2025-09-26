@@ -1,6 +1,6 @@
 {
   "name": "fhir-controller-cli",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "FHIR Controller CLI utilities.",
   "main": "index.js",
   "bin": {
@@ -35,17 +35,17 @@
   },
   "homepage": "https://github.com/preston/fhir-controller-cli#README",
   "dependencies": {
-    "axios": "^1.11.0",
-    "commander": "^14.0.0",
+    "axios": "^1.12.2",
+    "commander": "^14.0.1",
     "csv-parser": "^3.2.0",
     "ts-progress": "^0.1.9"
   },
   "devDependencies": {
     "@types/fhir": "^0.0.41",
     "@types/jest": "^30.0.0",
-    "@types/node": "^24.3.1",
+    "@types/node": "^24.5.2",
     "nodemon": "^3.1.10",
-    "ts-jest": "^29.4.1",
+    "ts-jest": "^29.4.4",
     "ts-node": "^10.9.2"
   }
 }
