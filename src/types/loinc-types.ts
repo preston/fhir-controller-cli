@@ -1,0 +1,56 @@
+// Author: Preston Lee
+
+export interface LoincConcept {
+  loinc_num: string;
+  component: string;
+  property: string;
+  time_aspct: string;
+  system: string;
+  scale_typ: string;
+  method_typ: string;
+  class: string;
+  long_common_name: string;
+  shortname: string;
+  external_copyright_notice: string;
+  panel_type: string;
+  ask_at_order_entry: string;
+  associated_observations: string;
+  version_last_changed: string;
+  change_type: string;
+  comments_answer_list: string;
+  source: string;
+  date_last_changed: string;
+  formula: string;
+  unitsrequired: string;
+  submitted_units: string;
+  relatednames2: string;
+  order_obs: string;
+  cdisc_common_tests: string;
+  hl7_field_subfield_id: string;
+  external_copyright_link: string;
+  panel_type_loinc: string;
+  ask_at_order_entry_units: string;
+  standard_units: string;
+  units_and_range: string;
+  example_si_units: string;
+  example_ucum_units: string;
+  example_si_ucum_units: string;
+  survey_question_text: string;
+  survey_question_source: string;
+  unitsrequired_units: string;
+  submitted_units_units: string;
+  relatednames2_units: string;
+  order_obs_units: string;
+  cdisc_common_tests_units: string;
+  hl7_field_subfield_id_units: string;
+  external_copyright_link_units: string;
+  panel_type_loinc_units: string;
+  ask_at_order_entry_units_units: string;
+  standard_units_units: string;
+  units_and_range_units: string;
+  example_si_units_units: string;
+  example_ucum_units_units: string;
+  example_si_ucum_units_units: string;
+  survey_question_text_units: string;
+  survey_question_source_units: string;
+}

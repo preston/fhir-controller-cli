@@ -8,6 +8,8 @@ import axios from 'axios';
 
 import { SyntheaUtilities } from '../synthea-utilities';
 import { ImportUtilities } from '../import-utilities';
+import { TerminologyUtilities } from '../terminology-utilities';
+import { TerminologyProcessor } from '../terminology-processor';
 
 
 let dryRun = false;
@@ -78,6 +80,134 @@ cli.command('synthea-upload')
 		uploadPromise.finally(() => activeOperations.delete(uploadPromise));
 		await uploadPromise;
 	});
+
+const terminologyCommand = cli
+	.command('terminology-upload')
+	.description('Upload terminology systems to a FHIR server');
+
+terminologyCommand
+	.command('snomed')
+	.description('Upload SNOMED CT US Edition terminology')
+	.argument('<file_path>', 'Path to SNOMED CT RF2 files or ZIP archive')
+	.argument('<fhir_url>', 'URL of the FHIR server to upload to')
+	.argument('<temp_dir>', 'Temporary directory for staging large terminology files')
+	.option('-d, --dry-run', 'Perform a dry run without uploading any resources')
+	.option('-v, --verbose', 'Enable verbose debugging mode')
+	.option('--keep-temporary', 'Keep temporary files after upload for debugging')
+	.action(async (filePath, fhirUrl, tempDir, options) => {
+		dryRun = options.dryRun;
+		verbose = options.verbose;
+		const keepTemp = options.keepTemp;
+		
+		if (dryRun) {
+			console.log('Dry run enabled. No resources will be uploaded.');
+		}
+		
+		if (keepTemp) {
+			console.log('Keep temp files enabled. Temporary files will not be cleaned up.');
+		}
+		
+		console.info(`Using temporary directory: ${tempDir}`);
+		
+		const safePath = safeFilePathFor(filePath);
+		const terminologyUtils = new TerminologyUtilities(dryRun, verbose, tempDir, keepTemp);
+		
+		if (!terminologyUtils.validateFile(safePath, true)) {
+			console.error('Invalid file path. Exiting.');
+			process.exit(1);
+		}
+		
+		const fileSize = terminologyUtils.getFileSize(safePath);
+		console.info(`File size: ${fileSize.toFixed(2)} MB`);
+		
+		const uploadPromise = terminologyUtils.uploadTerminology(safePath, fhirUrl, 'snomed');
+		activeOperations.add(uploadPromise);
+		uploadPromise.finally(() => activeOperations.delete(uploadPromise));
+		await uploadPromise;
+	});
+
+terminologyCommand
+	.command('loinc')
+	.description('Upload LOINC terminology')
+	.argument('<file_path>', 'Path to LOINC CSV file')
+	.argument('<fhir_url>', 'URL of the FHIR server to upload to')
+	.argument('<temp_dir>', 'Temporary directory for staging large terminology files')
+	.option('-d, --dry-run', 'Perform a dry run without uploading any resources')
+	.option('-v, --verbose', 'Enable verbose debugging mode')
+	.option('--batch-size <size>', 'Number of concepts to process in each batch', '1000')
+	.action(async (filePath, fhirUrl, tempDir, options) => {
+		dryRun = options.dryRun;
+		verbose = options.verbose;
+		const batchSize = parseInt(options.batchSize);
+		
+		if (dryRun) {
+			console.log('Dry run enabled. No resources will be uploaded.');
+		}
+		
+		console.info(`Using temporary directory: ${tempDir}`);
+		
+		const safePath = safeFilePathFor(filePath);
+		const terminologyUtils = new TerminologyUtilities(dryRun, verbose, tempDir);
+		
+		if (!terminologyUtils.validateFile(safePath)) {
+			console.error('Invalid file path. Exiting.');
+			process.exit(1);
+		}
+		
+		const fileSize = terminologyUtils.getFileSize(safePath);
+		console.info(`File size: ${fileSize.toFixed(2)} MB`);
+		
+		const processor = new TerminologyProcessor({ dryRun, verbose, batchSize });
+		const codeSystem = await processor.processLoincFile(safePath);
+		
+		// Upload the CodeSystem
+		const uploadPromise = terminologyUtils.uploadResource(codeSystem, fhirUrl, 'CodeSystem');
+		activeOperations.add(uploadPromise);
+		uploadPromise.finally(() => activeOperations.delete(uploadPromise));
+		await uploadPromise;
+	});
+
+terminologyCommand
+	.command('rxnorm')
+	.description('Upload RxNorm terminology')
+	.argument('<file_path>', 'Path to RxNorm CSV file')
+	.argument('<fhir_url>', 'URL of the FHIR server to upload to')
+	.argument('<temp_dir>', 'Temporary directory for staging large terminology files')
+	.option('-d, --dry-run', 'Perform a dry run without uploading any resources')
+	.option('-v, --verbose', 'Enable verbose debugging mode')
+	.option('--batch-size <size>', 'Number of concepts to process in each batch', '1000')
+	.action(async (filePath, fhirUrl, tempDir, options) => {
+		dryRun = options.dryRun;
+		verbose = options.verbose;
+		const batchSize = parseInt(options.batchSize);
+		
+		if (dryRun) {
+			console.log('Dry run enabled. No resources will be uploaded.');
+		}
+		
+		console.info(`Using temporary directory: ${tempDir}`);
+		
+		const safePath = safeFilePathFor(filePath);
+		const terminologyUtils = new TerminologyUtilities(dryRun, verbose, tempDir);
+		
+		if (!terminologyUtils.validateFile(safePath)) {
+			console.error('Invalid file path. Exiting.');
+			process.exit(1);
+		}
+		
+		const fileSize = terminologyUtils.getFileSize(safePath);
+		console.info(`File size: ${fileSize.toFixed(2)} MB`);
+		
+		const processor = new TerminologyProcessor({ dryRun, verbose, batchSize });
+		const codeSystem = await processor.processRxNormFile(safePath);
+		
+		// Upload the CodeSystem
+		const uploadPromise = terminologyUtils.uploadResource(codeSystem, fhirUrl, 'CodeSystem');
+		activeOperations.add(uploadPromise);
+		uploadPromise.finally(() => activeOperations.delete(uploadPromise));
+		await uploadPromise;
+	});
+
 
 
 // Handle SIGINT signal for graceful shutdown
