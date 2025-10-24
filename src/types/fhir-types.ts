@@ -1,7 +1,7 @@
 // Author: Preston Lee
 
 // Re-export FHIR types for convenience
-export { CodeSystem, ValueSet, ConceptMap, Coding, CodeableConcept } from 'fhir/r4';
+export type { CodeSystem, ValueSet, ConceptMap, Coding, CodeableConcept } from 'fhir/r4';
 
 // Additional FHIR-related interfaces
 export interface FhirResource {

@@ -1,13 +1,31 @@
-// Author: Preston Lee
-
 import fs from 'fs';
 import path from 'path';
 import { createReadStream } from 'fs';
 import csv from 'csv-parser';
-import { CodeSystem, ValueSet, ConceptMap, Coding, CodeableConcept } from 'fhir/r4';
-import { TerminologyProcessorConfig } from '../types/terminology-config';
-
-
+import readline from 'readline';
+import type { CodeSystem, ValueSet, ConceptMap, Coding, CodeableConcept } from 'fhir/r4';
+import { TerminologyProcessorConfig } from '../types/terminology-config.js';
+import { 
+  SNOMED_CONCEPT_IDS, 
+  SNOMED_FHIR_URLS, 
+  SNOMED_RELATIONSHIP_TYPES, 
+  SNOMED_DISPLAY_NAMES, 
+  SNOMED_LANGUAGES, 
+  SNOMED_PROPERTY_CODES 
+} from '../constants/snomed-constants.js';
+import { 
+  LOINC_FHIR_URLS, 
+  LOINC_PROPERTY_CODES, 
+  LOINC_ORGANIZATION, 
+  LOINC_RESOURCE_INFO 
+} from '../constants/loinc-constants.js';
+import { 
+  RXNORM_FHIR_URLS, 
+  RXNORM_PROPERTY_CODES, 
+  RXNORM_ORGANIZATION, 
+  RXNORM_RESOURCE_INFO,
+  RXNORM_RRF_FIELDS 
+} from '../constants/rxnorm-constants.js';
 
 export class TerminologyProcessor {
   private config: TerminologyProcessorConfig;
@@ -16,11 +34,8 @@ export class TerminologyProcessor {
     this.config = config;
   }
 
-  /**
-   * Process LOINC CSV file and create FHIR CodeSystem
-   */
   async processLoincFile(filePath: string): Promise<CodeSystem> {
-    console.info(`Processing LOINC file: ${filePath}`);
+    console.info(`Starting LOINC terminology processing from: ${filePath}`);
     
     const concepts: any[] = [];
     let processedCount = 0;
@@ -35,14 +50,14 @@ export class TerminologyProcessor {
               display: data.LONG_COMMON_NAME,
               definition: this.buildLoincDefinition(data),
               property: [
-                ...(data.COMPONENT ? [{ code: 'component', valueString: data.COMPONENT }] : []),
-                ...(data.PROPERTY ? [{ code: 'property', valueString: data.PROPERTY }] : []),
-                ...(data.TIME_ASPCT ? [{ code: 'time', valueString: data.TIME_ASPCT }] : []),
-                ...(data.SYSTEM ? [{ code: 'system', valueString: data.SYSTEM }] : []),
-                ...(data.SCALE_TYP ? [{ code: 'scale', valueString: data.SCALE_TYP }] : []),
-                ...(data.METHOD_TYP ? [{ code: 'method', valueString: data.METHOD_TYP }] : []),
-                ...(data.CLASS ? [{ code: 'class', valueString: data.CLASS }] : []),
-                ...(data.CLASSTYPE ? [{ code: 'classtype', valueString: data.CLASSTYPE }] : [])
+                ...(data.COMPONENT ? [{ code: LOINC_PROPERTY_CODES.COMPONENT, valueString: data.COMPONENT }] : []),
+                ...(data.PROPERTY ? [{ code: LOINC_PROPERTY_CODES.PROPERTY, valueString: data.PROPERTY }] : []),
+                ...(data.TIME_ASPCT ? [{ code: LOINC_PROPERTY_CODES.TIME, valueString: data.TIME_ASPCT }] : []),
+                ...(data.SYSTEM ? [{ code: LOINC_PROPERTY_CODES.SYSTEM, valueString: data.SYSTEM }] : []),
+                ...(data.SCALE_TYP ? [{ code: LOINC_PROPERTY_CODES.SCALE, valueString: data.SCALE_TYP }] : []),
+                ...(data.METHOD_TYP ? [{ code: LOINC_PROPERTY_CODES.METHOD, valueString: data.METHOD_TYP }] : []),
+                ...(data.CLASS ? [{ code: LOINC_PROPERTY_CODES.CLASS, valueString: data.CLASS }] : []),
+                ...(data.CLASSTYPE ? [{ code: LOINC_PROPERTY_CODES.CLASSTYPE, valueString: data.CLASSTYPE }] : [])
               ]
             });
             processedCount++;
@@ -53,9 +68,8 @@ export class TerminologyProcessor {
           }
         })
         .on('end', () => {
-          console.info(`Finished processing ${processedCount} LOINC concepts`);
+          console.info(`Successfully processed ${processedCount} LOINC concepts from file`);
           
-          // Deduplicate concepts by code to prevent duplicate concepts in CodeSystem
           const uniqueConcepts = new Map();
           concepts.forEach(concept => {
             if (!uniqueConcepts.has(concept.code)) {
@@ -63,131 +77,121 @@ export class TerminologyProcessor {
             }
           });
           
-          console.info(`Deduplicated ${concepts.length} LOINC concepts to ${uniqueConcepts.size} unique concepts`);
+          console.info(`Deduplicated LOINC concepts: ${concepts.length} → ${uniqueConcepts.size} unique concepts`);
           
           const codeSystem = this.createLoincCodeSystem(Array.from(uniqueConcepts.values()));
           resolve(codeSystem);
         })
         .on('error', (error) => {
-          console.error('Error processing LOINC file:', error);
+          console.error('Failed to process LOINC file:', error);
           reject(error);
         });
     });
   }
 
-  /**
-   * Process SNOMED CT RF2 files and create FHIR CodeSystem
-   */
   async processSnomedFile(filePath: string): Promise<CodeSystem> {
-    console.info(`Processing SNOMED CT file: ${filePath}`);
+    console.info(`Starting SNOMED CT terminology processing from: ${filePath}`);
     
     const version = this.extractSnomedVersion(filePath);
-    console.info(`Extracted SNOMED CT version: ${version}`);
+    console.info(`Detected SNOMED CT version: ${version}`);
     
-    // Check if it's a directory (extracted RF2 files) or a single file
-    const stats = require('fs').statSync(filePath);
+    const stats = fs.statSync(filePath);
     
     if (stats.isDirectory()) {
       return this.processSnomedDirectory(filePath, version);
     } else {
-      // Single file - process concepts from the file
-      console.info(`Processing SNOMED CT single file: ${filePath}`);
+      console.info(`Processing single SNOMED CT file: ${filePath}`);
       const concepts = await this.processSnomedConceptsFromFile(filePath);
       return this.createSnomedCodeSystem(concepts, version);
     }
   }
 
-  /**
-   * Process SNOMED CT concepts from a single file
-   */
   private async processSnomedConceptsFromFile(filePath: string): Promise<any[]> {
-    console.info(`Processing SNOMED CT concepts from file: ${filePath}`);
-    
-    const fs = require('fs');
-    const readline = require('readline');
-    
-    const fileStream = fs.createReadStream(filePath);
-    const rl = readline.createInterface({
-      input: fileStream,
-      crlfDelay: Infinity
-    });
+    console.info(`Reading SNOMED CT concepts from file: ${filePath}`);
     
     const concepts: any[] = [];
     let lineNumber = 0;
     
-    for await (const line of rl) {
-      lineNumber++;
+    try {
+      const fileStream = fs.createReadStream(filePath);
+      const rl = readline.createInterface({
+        input: fileStream,
+        crlfDelay: Infinity
+      });
       
-      // Skip header line
-      if (lineNumber === 1) {
-        continue;
-      }
-      
-      // Skip empty lines
-      if (!line.trim()) {
-        continue;
-      }
-      
-      const parts = line.split('\t');
-      if (parts.length >= 6) {
-        const conceptId = parts[0];
-        const effectiveTime = parts[1];
-        const active = parts[2];
+      for await (const line of rl) {
+        lineNumber++;
         
-        // Only process active concepts
-        if (active === '1') {
-          concepts.push({
-            code: conceptId,
-            display: `SNOMED CT Concept ${conceptId}`,
-            definition: `SNOMED CT concept with ID ${conceptId}`,
-            effectiveTime: effectiveTime
-          });
+        if (lineNumber === 1) {
+          continue;
+        }
+        
+        if (!line.trim()) {
+          continue;
+        }
+      
+        const parts = line.split('\t');
+        if (parts.length >= 5) {
+          const conceptId = parts[0];
+          const effectiveTime = parts[1];
+          const active = parts[2];
+          
+          if (active === '1') {
+            concepts.push({
+              code: conceptId,
+              display: `SNOMED CT Concept ${conceptId}`,
+              definition: `SNOMED CT concept with ID ${conceptId}`,
+              effectiveTime: effectiveTime
+            });
+          }
+        }
+        
+        if (concepts.length % 10000 === 0) {
+          console.info(`Progress: ${concepts.length} SNOMED CT concepts processed...`);
         }
       }
       
-      // Log progress every 10000 concepts
-      if (concepts.length % 10000 === 0) {
-        console.info(`Processed ${concepts.length} concepts...`);
-      }
+      rl.close();
+      fileStream.close();
+      
+    } catch (error) {
+      console.error(`Failed to process SNOMED CT file ${filePath}:`, error);
+      throw error;
     }
     
-    console.info(`Finished processing ${concepts.length} SNOMED CT concepts`);
+    console.info(`Successfully completed processing ${concepts.length} SNOMED CT concepts`);
     return concepts;
   }
 
-  /**
-   * Process SNOMED CT directory with RF2 files
-   */
-  private async processSnomedDirectory(directoryPath: string, version?: string): Promise<CodeSystem> {
-    console.info(`Processing SNOMED CT directory: ${directoryPath}`);
+  async processSnomedDirectory(directoryPath: string, version?: string): Promise<CodeSystem> {
+    console.info(`Starting SNOMED CT directory processing: ${directoryPath}`);
     
-    // Look for the terminology files in the expected structure
     const terminologyPath = this.findTerminologyPath(directoryPath);
     if (!terminologyPath) {
       throw new Error('Could not find terminology files in SNOMED CT directory');
     }
 
-    // Process all RF2 components following Snowstorm patterns
+    const actualVersion = version || this.extractSnomedVersion(directoryPath);
+    const actualNamespace = this.extractSnomedNamespace(directoryPath);
+    console.info(`Using SNOMED CT version: ${actualVersion}`);
+    console.info(`Using SNOMED CT namespace: ${actualNamespace}`);
+
     const concepts = await this.processSnomedConcepts(terminologyPath);
     const descriptions = await this.processSnomedDescriptions(terminologyPath);
     const relationships = await this.processSnomedRelationships(terminologyPath);
     const textDefinitions = await this.processSnomedTextDefinitions(terminologyPath);
     
-    // Build comprehensive concept hierarchy
+    console.info(`[DEBUG] Loaded ${concepts.length} concepts, ${descriptions.length} descriptions, ${relationships.length} relationships, ${textDefinitions.length} text definitions`);
+    
     const mergedConcepts = this.buildSnomedConceptHierarchy(concepts, descriptions, relationships, textDefinitions);
     
-    console.info(`Processed ${mergedConcepts.length} SNOMED CT concepts with relationships`);
-    return this.createSnomedCodeSystem(mergedConcepts, version);
+    console.info(`Successfully built ${mergedConcepts.length} SNOMED CT concepts with relationships`);
+    const codeSystem = this.createSnomedCodeSystem(mergedConcepts, actualVersion, actualNamespace);
+    console.info(`[DEBUG] Created CodeSystem with ${codeSystem.concept?.length || 0} concepts`);
+    return codeSystem;
   }
 
-  /**
-   * Find the terminology directory path in SNOMED CT structure
-   */
   private findTerminologyPath(directoryPath: string): string | null {
-    const fs = require('fs');
-    const path = require('path');
-    
-    // Try Full/Terminology first, then Snapshot/Terminology
     const possiblePaths = [
       path.join(directoryPath, 'Full', 'Terminology'),
       path.join(directoryPath, 'Snapshot', 'Terminology'),
@@ -203,14 +207,7 @@ export class TerminologyProcessor {
     return null;
   }
 
-  /**
-   * Process SNOMED CT concept files
-   */
   private async processSnomedConcepts(terminologyPath: string): Promise<any[]> {
-    const fs = require('fs');
-    const path = require('path');
-    
-    // Find the concept file
     const conceptFiles = fs.readdirSync(terminologyPath).filter((file: string) => 
       file.startsWith('sct2_Concept_') && file.endsWith('.txt')
     );
@@ -220,7 +217,7 @@ export class TerminologyProcessor {
     }
     
     const conceptFile = path.join(terminologyPath, conceptFiles[0]);
-    console.info(`Processing concept file: ${conceptFile}`);
+    console.info(`Reading SNOMED CT concepts from file: ${conceptFile}`);
     
     const concepts: any[] = [];
     let processedCount = 0;
@@ -245,24 +242,17 @@ export class TerminologyProcessor {
           }
         })
         .on('end', () => {
-          console.info(`Finished processing ${processedCount} SNOMED concepts`);
+          console.info(`Successfully processed ${processedCount} SNOMED CT concepts`);
           resolve(concepts);
         })
         .on('error', (error) => {
-          console.error('Error processing SNOMED concept file:', error);
+          console.error('Failed to process SNOMED CT concept file:', error);
           reject(error);
         });
     });
   }
 
-  /**
-   * Process SNOMED CT description files
-   */
   private async processSnomedDescriptions(terminologyPath: string): Promise<any[]> {
-    const fs = require('fs');
-    const path = require('path');
-    
-    // Find the description file
     const descriptionFiles = fs.readdirSync(terminologyPath).filter((file: string) => 
       file.startsWith('sct2_Description_') && file.endsWith('.txt')
     );
@@ -273,7 +263,7 @@ export class TerminologyProcessor {
     }
     
     const descriptionFile = path.join(terminologyPath, descriptionFiles[0]);
-    console.info(`Processing description file: ${descriptionFile}`);
+    console.info(`Reading SNOMED CT descriptions from file: ${descriptionFile}`);
     
     const descriptions: any[] = [];
     let processedCount = 0;
@@ -297,24 +287,17 @@ export class TerminologyProcessor {
           }
         })
         .on('end', () => {
-          console.info(`Finished processing ${processedCount} SNOMED descriptions`);
+          console.info(`Successfully processed ${processedCount} SNOMED CT descriptions`);
           resolve(descriptions);
         })
         .on('error', (error) => {
-          console.error('Error processing SNOMED description file:', error);
+          console.error('Failed to process SNOMED CT description file:', error);
           reject(error);
         });
     });
   }
 
-  /**
-   * Process SNOMED CT relationship files
-   */
   private async processSnomedRelationships(terminologyPath: string): Promise<any[]> {
-    const fs = require('fs');
-    const path = require('path');
-    
-    // Find the relationship file
     const relationshipFiles = fs.readdirSync(terminologyPath).filter((file: string) => 
       file.startsWith('sct2_Relationship_') && file.endsWith('.txt')
     );
@@ -325,7 +308,7 @@ export class TerminologyProcessor {
     }
     
     const relationshipFile = path.join(terminologyPath, relationshipFiles[0]);
-    console.info(`Processing relationship file: ${relationshipFile}`);
+    console.info(`Reading SNOMED CT relationships from file: ${relationshipFile}`);
     
     const relationships: any[] = [];
     let processedCount = 0;
@@ -350,24 +333,17 @@ export class TerminologyProcessor {
           }
         })
         .on('end', () => {
-          console.info(`Finished processing ${processedCount} SNOMED relationships`);
+          console.info(`Successfully processed ${processedCount} SNOMED CT relationships`);
           resolve(relationships);
         })
         .on('error', (error) => {
-          console.error('Error processing SNOMED relationship file:', error);
+          console.error('Failed to process SNOMED CT relationship file:', error);
           reject(error);
         });
     });
   }
 
-  /**
-   * Process SNOMED CT text definition files
-   */
   private async processSnomedTextDefinitions(terminologyPath: string): Promise<any[]> {
-    const fs = require('fs');
-    const path = require('path');
-    
-    // Find the text definition file
     const textDefFiles = fs.readdirSync(terminologyPath).filter((file: string) => 
       file.startsWith('sct2_TextDefinition_') && file.endsWith('.txt')
     );
@@ -378,7 +354,7 @@ export class TerminologyProcessor {
     }
     
     const textDefFile = path.join(terminologyPath, textDefFiles[0]);
-    console.info(`Processing text definition file: ${textDefFile}`);
+    console.info(`Reading SNOMED CT text definitions from file: ${textDefFile}`);
     
     const textDefinitions: any[] = [];
     let processedCount = 0;
@@ -401,27 +377,23 @@ export class TerminologyProcessor {
           }
         })
         .on('end', () => {
-          console.info(`Finished processing ${processedCount} SNOMED text definitions`);
+          console.info(`Successfully processed ${processedCount} SNOMED CT text definitions`);
           resolve(textDefinitions);
         })
         .on('error', (error) => {
-          console.error('Error processing SNOMED text definition file:', error);
+          console.error('Failed to process SNOMED CT text definition file:', error);
           reject(error);
         });
     });
   }
 
-  /**
-   * Build comprehensive SNOMED concept hierarchy with relationships
-   */
   private buildSnomedConceptHierarchy(concepts: any[], descriptions: any[], relationships: any[], textDefinitions: any[]): any[] {
     const descriptionMap = new Map();
     const textDefMap = new Map();
     const relationshipMap = new Map();
     
-    // Create maps for efficient lookup
     descriptions.forEach(desc => {
-      if (!descriptionMap.has(desc.conceptId) || desc.typeId === '900000000000013009') {
+      if (!descriptionMap.has(desc.conceptId) || desc.typeId === SNOMED_CONCEPT_IDS.SYNONYM) {
         descriptionMap.set(desc.conceptId, desc.term);
       }
     });
@@ -432,7 +404,6 @@ export class TerminologyProcessor {
       }
     });
     
-    // Group relationships by source concept
     relationships.forEach(rel => {
       if (!relationshipMap.has(rel.sourceId)) {
         relationshipMap.set(rel.sourceId, []);
@@ -440,7 +411,6 @@ export class TerminologyProcessor {
       relationshipMap.get(rel.sourceId).push(rel);
     });
     
-    // Deduplicate concepts by ID to prevent duplicate concepts in CodeSystem
     const uniqueConcepts = new Map();
     concepts.forEach(concept => {
       if (!uniqueConcepts.has(concept.id)) {
@@ -448,17 +418,15 @@ export class TerminologyProcessor {
       }
     });
     
-    console.info(`Deduplicated ${concepts.length} concepts to ${uniqueConcepts.size} unique concepts`);
+    console.info(`Deduplicated SNOMED CT concepts: ${concepts.length} → ${uniqueConcepts.size} unique concepts`);
     
-    // Build concepts with hierarchy information
-    // Process ALL concepts - no artificial limits
     const allConcepts = Array.from(uniqueConcepts.values());
     
-    console.info(`[DEBUG] Processing ALL ${allConcepts.length} concepts`);
+    console.info(`Building concept hierarchy for ${allConcepts.length} SNOMED CT concepts`);
     
     return allConcepts.map(concept => {
       const conceptRelationships = relationshipMap.get(concept.id) || [];
-      const isA = conceptRelationships.filter((rel: any) => rel.typeId === '116680003');
+      const isA = conceptRelationships.filter((rel: any) => rel.typeId === SNOMED_CONCEPT_IDS.IS_A);
       const parentConcepts = isA.map((rel: any) => rel.destinationId);
       
       const conceptDisplay = descriptionMap.get(concept.id) || `SNOMED CT Concept ${concept.id}`;
@@ -472,101 +440,101 @@ export class TerminologyProcessor {
           {
             extension: [
               {
-                url: 'http://snomed.info/fhir/StructureDefinition/designation-use-context',
+                url: SNOMED_FHIR_URLS.DESIGNATION_USE_CONTEXT_EXTENSION,
                 extension: [
                   {
                     url: 'context',
                     valueCoding: {
-                      system: 'http://snomed.info/sct',
-                      code: '900000000000509007'
+                      system: SNOMED_FHIR_URLS.SYSTEM,
+                      code: SNOMED_CONCEPT_IDS.CONTEXT
                     }
                   },
                   {
                     url: 'role',
                     valueCoding: {
-                      system: 'http://snomed.info/sct',
-                      code: '900000000000548007',
-                      display: 'PREFERRED'
+                      system: SNOMED_FHIR_URLS.SYSTEM,
+                      code: SNOMED_CONCEPT_IDS.PREFERRED_ROLE,
+                      display: SNOMED_DISPLAY_NAMES.PREFERRED
                     }
                   },
                   {
                     url: 'type',
                     valueCoding: {
-                      system: 'http://snomed.info/sct',
-                      code: '900000000000003001',
-                      display: 'Fully specified name'
+                      system: SNOMED_FHIR_URLS.SYSTEM,
+                      code: SNOMED_CONCEPT_IDS.FULLY_SPECIFIED_NAME,
+                      display: SNOMED_DISPLAY_NAMES.FULLY_SPECIFIED_NAME
                     }
                   }
                 ]
               }
             ],
-            language: 'en',
+            language: SNOMED_LANGUAGES.ENGLISH,
             use: {
-              system: 'http://snomed.info/sct',
-              code: '900000000000003001',
-              display: 'Fully specified name'
+              system: SNOMED_FHIR_URLS.SYSTEM,
+              code: SNOMED_CONCEPT_IDS.FULLY_SPECIFIED_NAME,
+              display: SNOMED_DISPLAY_NAMES.FULLY_SPECIFIED_NAME
             },
             value: conceptDisplay
           },
           {
             extension: [
               {
-                url: 'http://snomed.info/fhir/StructureDefinition/designation-use-context',
+                url: SNOMED_FHIR_URLS.DESIGNATION_USE_CONTEXT_EXTENSION,
                 extension: [
                   {
                     url: 'context',
                     valueCoding: {
-                      system: 'http://snomed.info/sct',
-                      code: '900000000000509007'
+                      system: SNOMED_FHIR_URLS.SYSTEM,
+                      code: SNOMED_CONCEPT_IDS.CONTEXT
                     }
                   },
                   {
                     url: 'role',
                     valueCoding: {
-                      system: 'http://snomed.info/sct',
-                      code: '900000000000548007',
-                      display: 'PREFERRED'
+                      system: SNOMED_FHIR_URLS.SYSTEM,
+                      code: SNOMED_CONCEPT_IDS.PREFERRED_ROLE,
+                      display: SNOMED_DISPLAY_NAMES.PREFERRED
                     }
                   },
                   {
                     url: 'type',
                     valueCoding: {
-                      system: 'http://snomed.info/sct',
-                      code: '900000000000013009',
-                      display: 'Synonym'
+                      system: SNOMED_FHIR_URLS.SYSTEM,
+                      code: SNOMED_CONCEPT_IDS.SYNONYM,
+                      display: SNOMED_DISPLAY_NAMES.SYNONYM
                     }
                   }
                 ]
               }
             ],
-            language: 'en', 
+            language: SNOMED_LANGUAGES.ENGLISH, 
             use: {
-              system: 'http://snomed.info/sct',
-              code: '900000000000013009',
-              display: 'Synonym'
+              system: SNOMED_FHIR_URLS.SYSTEM,
+              code: SNOMED_CONCEPT_IDS.SYNONYM,
+              display: SNOMED_DISPLAY_NAMES.SYNONYM
             },
             value: conceptDisplay
           }
         ],
         property: [
           {
-            code: 'effectiveTime',
+            code: SNOMED_PROPERTY_CODES.EFFECTIVE_TIME,
             valueString: concept.effectiveTime
           },
           {
-            code: 'moduleId',
+            code: SNOMED_PROPERTY_CODES.MODULE_ID,
             valueCode: concept.moduleId
           },
           {
-            code: 'definitionStatusId',
+            code: SNOMED_PROPERTY_CODES.DEFINITION_STATUS_ID,
             valueCode: concept.definitionStatusId
           },
           ...parentConcepts.slice(0, 10).map((parentId: any) => ({
-            code: 'parent',
+            code: SNOMED_PROPERTY_CODES.PARENT,
             valueCode: parentId
           })),
           ...conceptRelationships.slice(0, 10).map((rel: any) => ({
-            code: 'relationship',
+            code: SNOMED_PROPERTY_CODES.RELATIONSHIP,
             valueCode: rel.destinationId,
             valueString: this.getRelationshipTypeDisplay(rel.typeId)
           }))
@@ -575,42 +543,12 @@ export class TerminologyProcessor {
     });
   }
 
-  /**
-   * Get display name for relationship type
-   */
   private getRelationshipTypeDisplay(typeId: string): string {
-    const relationshipTypes: { [key: string]: string } = {
-      '116680003': 'Is a (attribute)',
-      '363698007': 'Finding site',
-      '363699004': 'Causative agent',
-      '363700003': 'Finding method',
-      '363701004': 'Procedure site',
-      '363702006': 'Has interpretation',
-      '363703001': 'Has focus',
-      '363704007': 'Has specimen',
-      '363705008': 'Subject relationship context',
-      '363706009': 'Temporal context',
-      '363707000': 'Subject relationship target',
-      '363708005': 'Subject relationship source',
-      '363709002': 'Subject relationship destination',
-      '363710007': 'Subject relationship context',
-      '363711006': 'Subject relationship target',
-      '363712004': 'Subject relationship source',
-      '363713009': 'Subject relationship destination',
-      '363714003': 'Subject relationship context',
-      '363715002': 'Subject relationship target',
-      '363716001': 'Subject relationship source',
-      '363717005': 'Subject relationship destination'
-    };
-    
-    return relationshipTypes[typeId] || `Relationship Type ${typeId}`;
+    return SNOMED_RELATIONSHIP_TYPES[typeId] || `Relationship Type ${typeId}`;
   }
 
-  /**
-   * Process RxNorm file and create FHIR CodeSystem
-   */
   async processRxNormFile(filePath: string): Promise<CodeSystem> {
-    console.info(`Processing RxNorm file: ${filePath}`);
+    console.info(`Starting RxNorm terminology processing from: ${filePath}`);
     
     const concepts: any[] = [];
     let processedCount = 0;
@@ -622,13 +560,12 @@ export class TerminologyProcessor {
         .pipe(csv({ separator: '|', headers: false }))
         .on('data', (data: any) => {
           // RXNCONSO.RRF format: RXCUI|LAT|TS|STT|SUI|ISPREF|AUI|SAUI|SCUI|SDUI|SAB|TTY|CODE|STR|SBR|VER|RELEASE|SRL|SUPPRESS|CVF
-          // Column positions: 0=RXCUI, 1=LAT, 2=TS, 3=STT, 4=SUI, 5=ISPREF, 6=AUI, 7=SAUI, 8=SCUI, 9=SDUI, 10=SAB, 11=TTY, 12=CODE, 13=STR, 14=SBR, 15=VER, 16=RELEASE, 17=SRL, 18=SUPPRESS, 19=CVF
-          const rxcui = data['0'];
-          const str = data['13'];
-          const sab = data['10'];
-          const tty = data['11'];
-          const code = data['12'];
-          const ispref = data['5'];
+          const rxcui = data[RXNORM_RRF_FIELDS.RXCUI.toString()];
+          const str = data[RXNORM_RRF_FIELDS.STR.toString()];
+          const sab = data[RXNORM_RRF_FIELDS.SAB.toString()];
+          const tty = data[RXNORM_RRF_FIELDS.TTY.toString()];
+          const code = data[RXNORM_RRF_FIELDS.CODE.toString()];
+          const ispref = data[RXNORM_RRF_FIELDS.ISPREF.toString()];
           
           if (rxcui && str && rxcui.trim() && str.trim()) {
             rrfData.push({
@@ -642,7 +579,6 @@ export class TerminologyProcessor {
           }
         })
         .on('end', () => {
-          // Process the RRF data to create concepts
           const conceptMap = new Map();
           
           rrfData.forEach(item => {
@@ -652,63 +588,59 @@ export class TerminologyProcessor {
                 display: item.str,
                 definition: item.str,
                 property: [
-                  ...(item.tty ? [{ code: 'tty', valueString: item.tty }] : []),
-                  ...(item.sab ? [{ code: 'sab', valueString: item.sab }] : []),
-                  ...(item.ispref ? [{ code: 'ispref', valueString: item.ispref }] : [])
+                  ...(item.tty ? [{ code: RXNORM_PROPERTY_CODES.TTY, valueString: item.tty }] : []),
+                  ...(item.sab ? [{ code: RXNORM_PROPERTY_CODES.SAB, valueString: item.sab }] : []),
+                  ...(item.ispref ? [{ code: RXNORM_PROPERTY_CODES.ISPREF, valueString: item.ispref }] : [])
                 ]
               });
             }
           });
           
-          // Process concepts in batches to avoid stack overflow
           const conceptValues = Array.from(conceptMap.values());
           for (let i = 0; i < conceptValues.length; i += this.config.batchSize) {
             concepts.push(...conceptValues.slice(i, i + this.config.batchSize));
           }
           processedCount = concepts.length;
           
-          console.info(`Finished processing ${processedCount} RxNorm concepts`);
+          console.info(`Successfully processed ${processedCount} RxNorm concepts`);
           const codeSystem = this.createRxNormCodeSystem(concepts);
           resolve(codeSystem);
         })
         .on('error', (error) => {
-          console.error('Error processing RxNorm file:', error);
+          console.error('Failed to process RxNorm file:', error);
           reject(error);
         });
     });
   }
 
-  /**
-   * Create LOINC CodeSystem from concepts
-   */
   private createLoincCodeSystem(concepts: any[]): CodeSystem {
     return {
       resourceType: 'CodeSystem',
       id: 'loinc-current',
-      url: 'http://loinc.org',
-      version: 'http://loinc.org/version/current',
+      url: LOINC_FHIR_URLS.SYSTEM,
+      version: LOINC_FHIR_URLS.VERSION_CURRENT,
       name: 'LOINC',
-      title: 'Logical Observation Identifiers Names and Codes',
+      title: LOINC_RESOURCE_INFO.TITLE,
       status: 'active',
       date: new Date().toISOString().split('T')[0] + 'T00:00:00+00:00',
-      publisher: 'Regenstrief Institute',
-      description: 'Logical Observation Identifiers Names and Codes (LOINC) is a universal code system for identifying health measurements, observations, and documents.',
+      publisher: LOINC_RESOURCE_INFO.PUBLISHER,
+      description: LOINC_RESOURCE_INFO.DESCRIPTION,
       caseSensitive: true,
       compositional: false,
       versionNeeded: false,
       content: 'complete',
       count: concepts.length,
-      concept: concepts, // Limit to first 1000 concepts for performance
+      concept: concepts,
       property: [
         {
-          code: 'tty',
-          uri: 'http://loinc.org#tty',
+          code: LOINC_PROPERTY_CODES.TTY,
+          uri: `${LOINC_FHIR_URLS.SYSTEM}#${LOINC_PROPERTY_CODES.TTY}`,
           description: 'Term type',
           type: 'string'
         },
         {
-          code: 'sab',
-          uri: 'http://loinc.org#sab',
+          code: LOINC_PROPERTY_CODES.SAB,
+          uri: `${LOINC_FHIR_URLS.SYSTEM}#${LOINC_PROPERTY_CODES.SAB}`,
           description: 'Source abbreviation',
           type: 'string'
         }
@@ -716,20 +648,23 @@ export class TerminologyProcessor {
     };
   }
 
-  /**
-   * Create SNOMED CT CodeSystem following Snowstorm patterns
-   */
-  private createSnomedCodeSystem(concepts: any[], version?: string): CodeSystem {
-    const actualVersion = version || 'http://snomed.info/sct/731000124108/version/20250901';
-    const versionId = actualVersion.split('/').pop() || '20250901';
+  private createSnomedCodeSystem(concepts: any[], version: string, namespace?: string): CodeSystem {
+    if (!version) {
+      throw new Error('SNOMED CT version is required and must be extracted from the data');
+    }
+    if (!namespace) {
+      throw new Error('SNOMED CT namespace is required and must be extracted from the data');
+    }
+    const versionId = version.split('/').pop() || 'unknown';
+    const edition = this.getSnomedEditionFromNamespace(namespace);
     
     return {
       resourceType: 'CodeSystem',
-      id: `sct-731000124108-${versionId}`,
-      url: 'http://snomed.info/sct',
-      version: actualVersion,
+      id: `sct-${namespace}-${versionId}`,
+      url: SNOMED_FHIR_URLS.SYSTEM,
+      version: version,
       name: 'SNOMED_CT',
-      title: 'United States Edition',
+      title: edition,
       status: 'active',
       date: new Date().toISOString().split('T')[0] + 'T00:00:00+00:00',
       publisher: 'SNOMED International',
@@ -741,31 +676,31 @@ export class TerminologyProcessor {
       property: [
         {
           code: 'effectiveTime',
-          uri: 'http://snomed.info/sct#effectiveTime',
+          uri: `${SNOMED_FHIR_URLS.SYSTEM}#effectiveTime`,
           description: 'The time at which this version of the concept became active',
           type: 'string'
         },
         {
           code: 'moduleId',
-          uri: 'http://snomed.info/sct#moduleId',
+          uri: `${SNOMED_FHIR_URLS.SYSTEM}#moduleId`,
           description: 'The module that contains this concept',
           type: 'code'
         },
         {
           code: 'definitionStatusId',
-          uri: 'http://snomed.info/sct#definitionStatusId',
+          uri: `${SNOMED_FHIR_URLS.SYSTEM}#definitionStatusId`,
           description: 'The definition status of this concept',
           type: 'code'
         },
         {
           code: 'parent',
-          uri: 'http://snomed.info/sct#parent',
+          uri: `${SNOMED_FHIR_URLS.SYSTEM}#parent`,
           description: 'Parent concepts in the SNOMED CT hierarchy',
           type: 'code'
         },
         {
           code: 'child',
-          uri: 'http://snomed.info/sct#child',
+          uri: `${SNOMED_FHIR_URLS.SYSTEM}#child`,
           description: 'Child concepts in the SNOMED CT hierarchy',
           type: 'code'
         }
@@ -773,15 +708,12 @@ export class TerminologyProcessor {
     };
   }
 
-  /**
-   * Create SNOMED CT ValueSet following Snowstorm patterns
-   */
   createSnomedValueSet(concepts: any[], valueSetId: string, title: string, description: string): ValueSet {
     return {
       resourceType: 'ValueSet',
       id: valueSetId,
-      url: `http://snomed.info/fhir/ValueSet/${valueSetId}`,
-      version: 'http://snomed.info/sct/900000000000207008/version/current',
+      url: `${SNOMED_FHIR_URLS.SYSTEM.replace('/sct', '/fhir')}/ValueSet/${valueSetId}`,
+      version: `${SNOMED_FHIR_URLS.SYSTEM}/900000000000207008/version/current`,
       name: valueSetId,
       title: title,
       status: 'active',
@@ -802,8 +734,8 @@ export class TerminologyProcessor {
       compose: {
         include: [
           {
-            system: 'http://snomed.info/sct',
-            version: 'http://snomed.info/sct/900000000000207008/version/current',
+            system: SNOMED_FHIR_URLS.SYSTEM,
+            version: `${SNOMED_FHIR_URLS.SYSTEM}/900000000000207008/version/current`,
             concept: concepts.map(concept => ({
               code: concept.code,
               display: concept.display,
@@ -815,36 +747,33 @@ export class TerminologyProcessor {
     };
   }
 
-  /**
-   * Create LOINC ValueSet following Snowstorm patterns
-   */
   createLoincValueSet(concepts: any[], valueSetId: string, title: string, description: string): ValueSet {
     return {
       resourceType: 'ValueSet',
       id: valueSetId,
-      url: `http://loinc.org/fhir/ValueSet/${valueSetId}`,
+      url: `${LOINC_FHIR_URLS.FHIR_BASE}/ValueSet/${valueSetId}`,
       version: 'current',
       name: valueSetId,
       title: title,
       status: 'active',
-      publisher: 'Regenstrief Institute',
+      publisher: LOINC_ORGANIZATION.NAME,
       contact: [
         {
-          name: 'Regenstrief Institute',
+          name: LOINC_ORGANIZATION.NAME,
           telecom: [
             {
               system: 'url',
-              value: 'https://loinc.org'
+              value: LOINC_ORGANIZATION.WEBSITE
             }
           ]
         }
       ],
       description: description,
-      copyright: 'This value set includes content from LOINC, which is copyright © 1995+ Regenstrief Institute, Inc. and the LOINC Committee, and is available at no cost under the license at https://loinc.org/license/',
+      copyright: LOINC_ORGANIZATION.COPYRIGHT,
       compose: {
         include: [
           {
-            system: 'http://loinc.org',
+            system: LOINC_FHIR_URLS.SYSTEM,
             version: 'current',
             concept: concepts.map(concept => ({
               code: concept.code,
@@ -857,36 +786,33 @@ export class TerminologyProcessor {
     };
   }
 
-  /**
-   * Create RxNorm ValueSet following Snowstorm patterns
-   */
   createRxNormValueSet(concepts: any[], valueSetId: string, title: string, description: string): ValueSet {
     return {
       resourceType: 'ValueSet',
       id: valueSetId,
-      url: `http://www.nlm.nih.gov/research/umls/rxnorm/fhir/ValueSet/${valueSetId}`,
+      url: `${RXNORM_FHIR_URLS.FHIR_BASE}/ValueSet/${valueSetId}`,
       version: 'current',
       name: valueSetId,
       title: title,
       status: 'active',
-      publisher: 'National Library of Medicine',
+      publisher: RXNORM_ORGANIZATION.NAME,
       contact: [
         {
-          name: 'National Library of Medicine',
+          name: RXNORM_ORGANIZATION.NAME,
           telecom: [
             {
               system: 'url',
-              value: 'https://www.nlm.nih.gov/research/umls/rxnorm/'
+              value: RXNORM_ORGANIZATION.WEBSITE
             }
           ]
         }
       ],
       description: description,
-      copyright: 'This value set includes content from RxNorm, which is copyright © 2001+ National Library of Medicine (NLM), and is available at no cost under the license at https://www.nlm.nih.gov/research/umls/rxnorm/docs/termsofservice.html',
+      copyright: RXNORM_ORGANIZATION.COPYRIGHT,
       compose: {
         include: [
           {
-            system: 'http://www.nlm.nih.gov/research/umls/rxnorm',
+            system: RXNORM_FHIR_URLS.SYSTEM,
             version: 'current',
             concept: concepts.map(concept => ({
               code: concept.code,
@@ -899,9 +825,6 @@ export class TerminologyProcessor {
     };
   }
 
-  /**
-   * Create Coding resource following Snowstorm patterns
-   */
   createCoding(system: string, code: string, display: string, version?: string): Coding {
     const coding: Coding = {
       system: system,
@@ -916,73 +839,61 @@ export class TerminologyProcessor {
     return coding;
   }
 
-  /**
-   * Create SNOMED CT Coding following Snowstorm patterns
-   */
   createSnomedCoding(code: string, display: string, version?: string): Coding {
     return this.createCoding(
-      'http://snomed.info/sct',
+      SNOMED_FHIR_URLS.SYSTEM,
       code,
       display,
-      version || 'http://snomed.info/sct/731000124108/version/20250901'
+      version || 'http://snomed.info/sct/version/current'
     );
   }
 
-  /**
-   * Create LOINC Coding following Snowstorm patterns
-   */
   createLoincCoding(code: string, display: string, version?: string): Coding {
     return this.createCoding(
-      'http://loinc.org',
+      LOINC_FHIR_URLS.SYSTEM,
       code,
       display,
-      version || 'http://loinc.org/version/current'
+      version || LOINC_FHIR_URLS.VERSION_CURRENT
     );
   }
 
-  /**
-   * Create RxNorm Coding following Snowstorm patterns
-   */
   createRxNormCoding(code: string, display: string, version?: string): Coding {
     return this.createCoding(
-      'http://www.nlm.nih.gov/research/umls/rxnorm',
+      RXNORM_FHIR_URLS.SYSTEM,
       code,
       display,
-      version || 'http://www.nlm.nih.gov/research/umls/rxnorm/version/current'
+      version || RXNORM_FHIR_URLS.VERSION_CURRENT
     );
   }
 
-  /**
-   * Create RxNorm CodeSystem from concepts
-   */
   private createRxNormCodeSystem(concepts: any[]): CodeSystem {
     return {
       resourceType: 'CodeSystem',
       id: 'rxnorm-current',
-      url: 'http://www.nlm.nih.gov/research/umls/rxnorm',
-      version: 'http://www.nlm.nih.gov/research/umls/rxnorm/version/current',
+      url: RXNORM_FHIR_URLS.SYSTEM,
+      version: RXNORM_FHIR_URLS.VERSION_CURRENT,
       name: 'RxNorm',
-      title: 'RxNorm',
+      title: RXNORM_RESOURCE_INFO.TITLE,
       status: 'active',
       date: new Date().toISOString().split('T')[0] + 'T00:00:00+00:00',
-      publisher: 'National Library of Medicine',
-      description: 'RxNorm - Normalized Names for Clinical Drugs',
+      publisher: RXNORM_RESOURCE_INFO.PUBLISHER,
+      description: RXNORM_RESOURCE_INFO.DESCRIPTION,
       caseSensitive: true,
       compositional: false,
       versionNeeded: false,
       content: 'complete',
       count: concepts.length,
-      concept: concepts, // Limit to first 1000 concepts for performance
+      concept: concepts,
       property: [
         {
-          code: 'tty',
-          uri: 'http://www.nlm.nih.gov/research/umls/rxnorm#tty',
+          code: RXNORM_PROPERTY_CODES.TTY,
+          uri: `${RXNORM_FHIR_URLS.SYSTEM}#${RXNORM_PROPERTY_CODES.TTY}`,
           description: 'Term type',
           type: 'string'
         },
         {
-          code: 'sab',
-          uri: 'http://www.nlm.nih.gov/research/umls/rxnorm#sab',
+          code: RXNORM_PROPERTY_CODES.SAB,
+          uri: `${RXNORM_FHIR_URLS.SYSTEM}#${RXNORM_PROPERTY_CODES.SAB}`,
           description: 'Source abbreviation',
           type: 'string'
         }
@@ -990,9 +901,6 @@ export class TerminologyProcessor {
     };
   }
 
-  /**
-   * Build LOINC concept definition from CSV data
-   */
   private buildLoincDefinition(data: any): string {
     let definition = data.LONG_COMMON_NAME;
     
@@ -1015,85 +923,230 @@ export class TerminologyProcessor {
     return definition;
   }
 
-  /**
-   * Extract version information from SNOMED CT RF2 files
-   */
-  private extractSnomedVersion(filePath: string): string {
+  private getSnomedEditionFromNamespace(namespace: string): string {
+    // Handle special case for International Edition (INT)
+    if (namespace.startsWith('INT')) {
+      return 'International Edition';
+    }
+    
+    const countryCode = namespace.substring(0, 2);
+    
+    const editionMap: { [key: string]: string } = {
+      'US': 'United States Edition',
+      'INT': 'International Edition',
+      'AU': 'Australian Edition',
+      'CA': 'Canadian Edition',
+      'NL': 'Netherlands Edition',
+      'SE': 'Swedish Edition',
+      'DK': 'Danish Edition',
+      'BE': 'Belgian Edition',
+      'ES': 'Spanish Edition',
+      'CH': 'Swiss Edition',
+      'IE': 'Irish Edition',
+      'NZ': 'New Zealand Edition',
+      'PL': 'Polish Edition',
+      'PT': 'Portuguese Edition',
+      'BR': 'Brazilian Edition',
+      'MX': 'Mexican Edition',
+      'AR': 'Argentine Edition',
+      'CL': 'Chilean Edition',
+      'CO': 'Colombian Edition',
+      'PE': 'Peruvian Edition',
+      'UY': 'Uruguayan Edition',
+      'VE': 'Venezuelan Edition',
+      'EC': 'Ecuadorian Edition',
+      'BO': 'Bolivian Edition',
+      'PY': 'Paraguayan Edition',
+      'GY': 'Guyanese Edition',
+      'SR': 'Surinamese Edition',
+      'TT': 'Trinidad and Tobago Edition',
+      'JM': 'Jamaican Edition',
+      'BB': 'Barbadian Edition',
+      'BS': 'Bahamian Edition',
+      'BZ': 'Belizean Edition',
+      'CR': 'Costa Rican Edition',
+      'CU': 'Cuban Edition',
+      'DO': 'Dominican Edition',
+      'GT': 'Guatemalan Edition',
+      'HN': 'Honduran Edition',
+      'NI': 'Nicaraguan Edition',
+      'PA': 'Panamanian Edition',
+      'SV': 'Salvadoran Edition',
+      'HT': 'Haitian Edition',
+      'DM': 'Dominican Edition',
+      'AG': 'Antiguan Edition',
+      'KN': 'Saint Kitts and Nevis Edition',
+      'LC': 'Saint Lucian Edition',
+      'VC': 'Saint Vincent and the Grenadines Edition',
+      'GD': 'Grenadian Edition'
+    };
+    
+    return editionMap[countryCode] || `${countryCode} Edition`;
+  }
+
+  public extractSnomedNamespace(filePath: string): string {
     try {
-      // Look for version in the directory name or file headers
+      // First try to extract from directory name
       const pathParts = filePath.split('/');
-      const dirName = pathParts[pathParts.length - 2] || pathParts[pathParts.length - 1];
+      const dirName = pathParts[pathParts.length - 1];
       
-      // Extract date from directory name like "SnomedCT_ManagedServiceUS_PRODUCTION_US1000124_20250901T120000Z"
-      const dateMatch = dirName.match(/(\d{8})/);
-      if (dateMatch) {
-        const date = dateMatch[1];
-        return `http://snomed.info/sct/731000124108/version/${date}`;
+      const namespaceMatch = dirName.match(/(US|INT|AU|CA|NL|SE|DK|BE|ES|CH|IE|NZ|PL|PT|BR|MX|AR|CL|CO|PE|UY|VE|EC|BO|PY|GY|SR|TT|JM|BB|BS|BZ|CR|CU|DO|GT|HN|NI|PA|SV|HT|DM|AG|KN|LC|VC|GD|BS|BZ|CR|CU|DO|GT|HN|NI|PA|SV|HT|DM|AG|KN|LC|VC|GD)(\d{7})/);
+      if (namespaceMatch) {
+        const countryCode = namespaceMatch[1];
+        const number = namespaceMatch[2];
+        return `${countryCode}${number}`;
       }
       
-      // Fallback to current date
-      const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
-      return `http://snomed.info/sct/731000124108/version/${today}`;
+      const namespace = this.extractNamespaceFromRf2Files(filePath);
+      if (namespace) {
+        return namespace;
+      }
+      
+      throw new Error(`Could not extract SNOMED CT namespace from directory path or RF2 files: ${filePath}`);
     } catch (error) {
-      console.warn('Could not extract SNOMED CT version, using fallback');
-      return 'http://snomed.info/sct/731000124108/version/current';
+      console.error('Failed to extract SNOMED CT namespace from data:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`SNOMED CT namespace extraction failed: ${errorMessage}`);
     }
   }
 
-  /**
-   * Extract version information from LOINC CSV files
-   */
+  private extractNamespaceFromRf2Files(directoryPath: string): string | null {
+    try {
+      const terminologyPath = this.findTerminologyPath(directoryPath);
+      if (!terminologyPath) {
+        return null;
+      }
+
+      const files = fs.readdirSync(terminologyPath);
+      const conceptFileName = files.find(file => 
+        file.startsWith('sct2_Concept_Full_') && file.endsWith('.txt')
+      );
+      
+      if (conceptFileName) {
+        const conceptFilePath = path.join(terminologyPath, conceptFileName);
+        
+        const buffer = fs.readFileSync(conceptFilePath, { encoding: 'utf8', flag: 'r' });
+        const headerContent = buffer.substring(0, 2000);
+        
+        const lines = headerContent.split('\n');
+        for (const line of lines) {
+          const namespaceMatch = line.match(/(US|INT|AU|CA|NL|SE|DK|BE|ES|CH|IE|NZ|PL|PT|BR|MX|AR|CL|CO|PE|UY|VE|EC|BO|PY|GY|SR|TT|JM|BB|BS|BZ|CR|CU|DO|GT|HN|NI|PA|SV|HT|DM|AG|KN|LC|VC|GD|BS|BZ|CR|CU|DO|GT|HN|NI|PA|SV|HT|DM|AG|KN|LC|VC|GD)(\d{7})/);
+          if (namespaceMatch) {
+            const countryCode = namespaceMatch[1];
+            const number = namespaceMatch[2];
+            return `${countryCode}${number}`;
+          }
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.warn('Failed to read RF2 file headers for namespace extraction:', error);
+      return null;
+    }
+  }
+
+  public extractSnomedVersion(filePath: string): string {
+    try {
+      // First try to extract from directory name
+      const pathParts = filePath.split('/');
+      const dirName = pathParts[pathParts.length - 1];
+      
+      const dateMatch = dirName.match(/(\d{8})/);
+      if (dateMatch) {
+        const date = dateMatch[1];
+        const namespace = this.extractSnomedNamespace(filePath);
+        return `${SNOMED_FHIR_URLS.SYSTEM}/${namespace}/version/${date}`;
+      }
+      
+      const version = this.extractVersionFromRf2Files(filePath);
+      if (version) {
+        return version;
+      }
+      
+      throw new Error(`Could not extract SNOMED CT version from directory path or RF2 files: ${filePath}`);
+    } catch (error) {
+      console.error('Failed to extract SNOMED CT version from data:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`SNOMED CT version extraction failed: ${errorMessage}`);
+    }
+  }
+
+  private extractVersionFromRf2Files(directoryPath: string): string | null {
+    try {
+      const terminologyPath = this.findTerminologyPath(directoryPath);
+      if (!terminologyPath) {
+        return null;
+      }
+
+      const files = fs.readdirSync(terminologyPath);
+      const conceptFileName = files.find(file => 
+        file.startsWith('sct2_Concept_Full_') && file.endsWith('.txt')
+      );
+      
+      if (conceptFileName) {
+        const conceptFilePath = path.join(terminologyPath, conceptFileName);
+        
+        const buffer = fs.readFileSync(conceptFilePath, { encoding: 'utf8', flag: 'r' });
+        const headerContent = buffer.substring(0, 1000);
+        
+        const lines = headerContent.split('\n');
+        for (const line of lines) {
+          const versionMatch = line.match(/(\d{8})/);
+          if (versionMatch) {
+            const date = versionMatch[1];
+            const namespace = this.extractSnomedNamespace(directoryPath);
+            return `${SNOMED_FHIR_URLS.SYSTEM}/${namespace}/version/${date}`;
+          }
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.warn('Failed to read RF2 file headers for version extraction:', error);
+      return null;
+    }
+  }
+
   private extractLoincVersion(filePath: string): string {
     try {
-      // Look for version in the directory path
       const pathParts = filePath.split('/');
       
-      // Look for version in directory names like "Loinc_2.81"
       for (let i = pathParts.length - 1; i >= 0; i--) {
         const part = pathParts[i];
         const versionMatch = part.match(/Loinc_(\d+\.\d+)/);
         if (versionMatch) {
-          return `http://loinc.org/version/${versionMatch[1]}`;
+          return `${LOINC_FHIR_URLS.SYSTEM}/version/${versionMatch[1]}`;
         }
       }
       
-      // Fallback to current
-      return 'http://loinc.org/version/current';
+      return LOINC_FHIR_URLS.VERSION_CURRENT;
     } catch (error) {
-      console.warn('Could not extract LOINC version, using fallback');
-      return 'http://loinc.org/version/current';
+      console.warn('Failed to extract LOINC version, using fallback');
+      return LOINC_FHIR_URLS.VERSION_CURRENT;
     }
   }
 
-  /**
-   * Extract version information from RxNorm RRF files
-   */
   private extractRxNormVersion(filePath: string): string {
     try {
-      // Look for version in the directory path
       const pathParts = filePath.split('/');
       
-      // Look for date in directory names like "RxNorm_full_09022025"
       for (let i = pathParts.length - 1; i >= 0; i--) {
         const part = pathParts[i];
         const dateMatch = part.match(/(\d{8})/);
         if (dateMatch) {
           const date = dateMatch[1];
-          return `http://www.nlm.nih.gov/research/umls/rxnorm/version/${date}`;
+          return `${RXNORM_FHIR_URLS.SYSTEM}/version/${date}`;
         }
       }
       
-      // Fallback to current
-      return 'http://www.nlm.nih.gov/research/umls/rxnorm/version/current';
+      return RXNORM_FHIR_URLS.VERSION_CURRENT;
     } catch (error) {
-      console.warn('Could not extract RxNorm version, using fallback');
-      return 'http://www.nlm.nih.gov/research/umls/rxnorm/version/current';
+      console.warn('Failed to extract RxNorm version, using fallback');
+      return RXNORM_FHIR_URLS.VERSION_CURRENT;
     }
   }
 
-  /**
-   * Create generic CodeableConcept resource
-   */
   createCodeableConcept(coding: Coding, text?: string): CodeableConcept {
     return {
       coding: [coding],
@@ -1101,25 +1154,16 @@ export class TerminologyProcessor {
     };
   }
 
-  /**
-   * Create SNOMED CT CodeableConcept resource
-   */
   createSnomedCodeableConcept(code: string, display: string, text?: string, version?: string): CodeableConcept {
     const coding = this.createSnomedCoding(code, display, version);
     return this.createCodeableConcept(coding, text);
   }
 
-  /**
-   * Create LOINC CodeableConcept resource
-   */
   createLoincCodeableConcept(code: string, display: string, text?: string, version?: string): CodeableConcept {
     const coding = this.createLoincCoding(code, display, version);
     return this.createCodeableConcept(coding, text);
   }
 
-  /**
-   * Create RxNorm CodeableConcept resource
-   */
   createRxNormCodeableConcept(code: string, display: string, text?: string, version?: string): CodeableConcept {
     const coding = this.createRxNormCoding(code, display, version);
     return this.createCodeableConcept(coding, text);

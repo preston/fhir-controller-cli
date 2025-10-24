@@ -1,0 +1,142 @@
+// Author: Preston Lee
+// SNOMED CT Constants and Identifiers
+
+/**
+ * SNOMED CT Concept Identifiers
+ * These are standard SNOMED CT concept identifiers used in the terminology system
+ */
+export const SNOMED_CONCEPT_IDS = {
+  // Description Types
+  SYNONYM: '900000000000013009',
+  FULLY_SPECIFIED_NAME: '900000000000003001',
+  
+  // Context and Role Identifiers
+  CONTEXT: '900000000000509007',
+  PREFERRED_ROLE: '900000000000548007',
+  
+  // Relationship Types
+  IS_A: '116680003',
+  FINDING_SITE: '363698007',
+  CAUSATIVE_AGENT: '363699004',
+  FINDING_METHOD: '363700003',
+  PROCEDURE_SITE: '363701004',
+  HAS_INTERPRETATION: '363702006',
+  HAS_FOCUS: '363703001',
+  HAS_SPECIMEN: '363704007',
+  SUBJECT_RELATIONSHIP_CONTEXT: '363705008',
+  TEMPORAL_CONTEXT: '363706009',
+  SUBJECT_RELATIONSHIP_TARGET: '363707000',
+  SUBJECT_RELATIONSHIP_SOURCE: '363708005',
+  SUBJECT_RELATIONSHIP_DESTINATION: '363709002',
+  SUBJECT_RELATIONSHIP_CONTEXT_2: '363710007',
+  SUBJECT_RELATIONSHIP_TARGET_2: '363711006',
+  SUBJECT_RELATIONSHIP_SOURCE_2: '363712004',
+  SUBJECT_RELATIONSHIP_DESTINATION_2: '363713009',
+  SUBJECT_RELATIONSHIP_CONTEXT_3: '363714003',
+  SUBJECT_RELATIONSHIP_TARGET_3: '363715002',
+  SUBJECT_RELATIONSHIP_SOURCE_3: '363716001',
+  SUBJECT_RELATIONSHIP_DESTINATION_3: '363717005'
+} as const;
+
+/**
+ * SNOMED CT FHIR URLs and Systems
+ */
+export const SNOMED_FHIR_URLS = {
+  SYSTEM: 'http://snomed.info/sct',
+  DESIGNATION_USE_CONTEXT_EXTENSION: 'http://snomed.info/fhir/StructureDefinition/designation-use-context'
+} as const;
+
+/**
+ * SNOMED CT Relationship Type Display Names
+ */
+export const SNOMED_RELATIONSHIP_TYPES: Record<string, string> = {
+  [SNOMED_CONCEPT_IDS.IS_A]: 'Is a (attribute)',
+  [SNOMED_CONCEPT_IDS.FINDING_SITE]: 'Finding site',
+  [SNOMED_CONCEPT_IDS.CAUSATIVE_AGENT]: 'Causative agent',
+  [SNOMED_CONCEPT_IDS.FINDING_METHOD]: 'Finding method',
+  [SNOMED_CONCEPT_IDS.PROCEDURE_SITE]: 'Procedure site',
+  [SNOMED_CONCEPT_IDS.HAS_INTERPRETATION]: 'Has interpretation',
+  [SNOMED_CONCEPT_IDS.HAS_FOCUS]: 'Has focus',
+  [SNOMED_CONCEPT_IDS.HAS_SPECIMEN]: 'Has specimen',
+  [SNOMED_CONCEPT_IDS.SUBJECT_RELATIONSHIP_CONTEXT]: 'Subject relationship context',
+  [SNOMED_CONCEPT_IDS.TEMPORAL_CONTEXT]: 'Temporal context',
+  [SNOMED_CONCEPT_IDS.SUBJECT_RELATIONSHIP_TARGET]: 'Subject relationship target',
+  [SNOMED_CONCEPT_IDS.SUBJECT_RELATIONSHIP_SOURCE]: 'Subject relationship source',
+  [SNOMED_CONCEPT_IDS.SUBJECT_RELATIONSHIP_DESTINATION]: 'Subject relationship destination',
+  [SNOMED_CONCEPT_IDS.SUBJECT_RELATIONSHIP_CONTEXT_2]: 'Subject relationship context',
+  [SNOMED_CONCEPT_IDS.SUBJECT_RELATIONSHIP_TARGET_2]: 'Subject relationship target',
+  [SNOMED_CONCEPT_IDS.SUBJECT_RELATIONSHIP_SOURCE_2]: 'Subject relationship source',
+  [SNOMED_CONCEPT_IDS.SUBJECT_RELATIONSHIP_DESTINATION_2]: 'Subject relationship destination',
+  [SNOMED_CONCEPT_IDS.SUBJECT_RELATIONSHIP_CONTEXT_3]: 'Subject relationship context',
+  [SNOMED_CONCEPT_IDS.SUBJECT_RELATIONSHIP_TARGET_3]: 'Subject relationship target',
+  [SNOMED_CONCEPT_IDS.SUBJECT_RELATIONSHIP_SOURCE_3]: 'Subject relationship source',
+  [SNOMED_CONCEPT_IDS.SUBJECT_RELATIONSHIP_DESTINATION_3]: 'Subject relationship destination'
+};
+
+/**
+ * SNOMED CT Display Names for Common Types
+ */
+export const SNOMED_DISPLAY_NAMES = {
+  PREFERRED: 'PREFERRED',
+  FULLY_SPECIFIED_NAME: 'Fully specified name',
+  SYNONYM: 'Synonym'
+} as const;
+
+/**
+ * SNOMED CT Language Codes
+ */
+export const SNOMED_LANGUAGES = {
+  ENGLISH: 'en'
+} as const;
+
+/**
+ * SNOMED CT Property Codes
+ */
+export const SNOMED_PROPERTY_CODES = {
+  EFFECTIVE_TIME: 'effectiveTime',
+  MODULE_ID: 'moduleId',
+  DEFINITION_STATUS_ID: 'definitionStatusId',
+  PARENT: 'parent',
+  RELATIONSHIP: 'relationship'
+} as const;
+
+/**
+ * TypeScript Enums for Type Safety
+ */
+export enum SnomedConceptType {
+  SYNONYM = '900000000000013009',
+  FULLY_SPECIFIED_NAME = '900000000000003001'
+}
+
+export enum SnomedContextType {
+  CONTEXT = '900000000000509007',
+  PREFERRED_ROLE = '900000000000548007'
+}
+
+export enum SnomedRelationshipType {
+  IS_A = '116680003',
+  FINDING_SITE = '363698007',
+  CAUSATIVE_AGENT = '363699004',
+  FINDING_METHOD = '363700003',
+  PROCEDURE_SITE = '363701004',
+  HAS_INTERPRETATION = '363702006',
+  HAS_FOCUS = '363703001',
+  HAS_SPECIMEN = '363704007',
+  SUBJECT_RELATIONSHIP_CONTEXT = '363705008',
+  TEMPORAL_CONTEXT = '363706009',
+  SUBJECT_RELATIONSHIP_TARGET = '363707000',
+  SUBJECT_RELATIONSHIP_SOURCE = '363708005',
+  SUBJECT_RELATIONSHIP_DESTINATION = '363709002'
+}
+
+export enum SnomedPropertyCode {
+  EFFECTIVE_TIME = 'effectiveTime',
+  MODULE_ID = 'moduleId',
+  DEFINITION_STATUS_ID = 'definitionStatusId',
+  PARENT = 'parent',
+  RELATIONSHIP = 'relationship'
+}
+
+export enum SnomedLanguage {
+  ENGLISH = 'en'
+}

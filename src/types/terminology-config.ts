@@ -21,4 +21,6 @@ export interface TerminologyFileInfo {
   filePath: string;
   fileType: 'snomed' | 'loinc' | 'rxnorm';
   format: 'rf2' | 'csv' | 'txt';
+  fileSize?: number;
+  estimatedConcepts?: number;
 }

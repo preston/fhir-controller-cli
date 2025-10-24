@@ -2,15 +2,18 @@
 
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 import { program } from 'commander';
 import axios from 'axios';
 
-import { SyntheaUtilities } from '../synthea-utilities';
-import { ImportUtilities } from '../import-utilities';
-import { TerminologyUtilities } from '../terminology-utilities';
-import { TerminologyProcessor } from '../terminology-processor';
+import { SyntheaUtilities } from '../synthea-utilities.js';
+import { ImportUtilities } from '../import-utilities.js';
+import { TerminologyUtilities } from '../classes/terminology-utilities.js';
+import { LogPrefixes } from '../constants/log-prefixes.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 let dryRun = false;
 let verbose = false;
@@ -81,23 +84,40 @@ cli.command('synthea-upload')
 		await uploadPromise;
 	});
 
-const terminologyCommand = cli
-	.command('terminology-upload')
-	.description('Upload terminology systems to a FHIR server');
+const terminologyCommand = cli.command('terminology');
 
 terminologyCommand
-	.command('snomed')
-	.description('Upload SNOMED CT US Edition terminology')
-	.argument('<file_path>', 'Path to SNOMED CT RF2 files or ZIP archive')
+	.command('import')
+	.description('Import terminology systems to a FHIR server')
+	.argument('<file_path>', 'Path to unzipped terminology files directory (SNOMED CT RF2 files/ZIP, LOINC CSV, or RxNorm CSV)')
 	.argument('<fhir_url>', 'URL of the FHIR server to upload to')
 	.argument('<temp_dir>', 'Temporary directory for staging large terminology files')
+	.option('-s, --system <system>', 'Terminology system to import (snomed, loinc, rxnorm)', 'snomed')
 	.option('-d, --dry-run', 'Perform a dry run without uploading any resources')
 	.option('-v, --verbose', 'Enable verbose debugging mode')
 	.option('--keep-temporary', 'Keep temporary files after upload for debugging')
-	.action(async (filePath, fhirUrl, tempDir, options) => {
+	.option('--replace', 'Delete existing CodeSystem before importing new one')
+	.option('--batch-size <size>', 'Number of concepts to process in each batch', '1000')
+	.option('--skip-preprocess', 'Skip preprocessing stage (use most recent files in temp directory)')
+	.option('--skip-split', 'Skip splitting stage (use most recent files in temp directory)')
+	.option('--skip-upload', 'Skip upload stage (only preprocess and split)')
+	.action(async (filePath: string, fhirUrl: string, tempDir: string, options: any) => {
 		dryRun = options.dryRun;
 		verbose = options.verbose;
-		const keepTemp = options.keepTemp;
+		const keepTemp = options.keepTemporary;
+		const replace = options.replace;
+		const system = options.system;
+		const batchSize = parseInt(options.batchSize);
+		const skipPreprocess = options.skipPreprocess;
+		const skipSplit = options.skipSplit;
+		const skipUpload = options.skipUpload;
+		
+		// Validate system option
+		const validSystems = ['snomed', 'loinc', 'rxnorm'];
+		if (!validSystems.includes(system)) {
+			console.error(`Invalid system: ${system}. Must be one of: ${validSystems.join(', ')}`);
+			process.exit(1);
+		}
 		
 		if (dryRun) {
 			console.log('Dry run enabled. No resources will be uploaded.');
@@ -107,105 +127,49 @@ terminologyCommand
 			console.log('Keep temp files enabled. Temporary files will not be cleaned up.');
 		}
 		
+		console.info(`Starting ${system.toUpperCase()} terminology import process`);
 		console.info(`Using temporary directory: ${tempDir}`);
 		
-		const safePath = safeFilePathFor(filePath);
-		const terminologyUtils = new TerminologyUtilities(dryRun, verbose, tempDir, keepTemp);
+		// Show which stages will be skipped
+		if (skipPreprocess) console.info(`${LogPrefixes.SKIP} Preprocessing stage will be skipped`);
+		if (skipSplit) console.info(`${LogPrefixes.SKIP} Splitting stage will be skipped`);
+		if (skipUpload) console.info(`${LogPrefixes.SKIP} Upload stage will be skipped`);
 		
-		if (!terminologyUtils.validateFile(safePath, true)) {
-			console.error('Invalid file path. Exiting.');
-			process.exit(1);
+		const terminologyUtils = new TerminologyUtilities(dryRun, verbose, tempDir, keepTemp, replace, batchSize);
+		
+		// Determine file path based on skip options
+		let actualFilePath = filePath;
+		if (!skipPreprocess) {
+			// Validate file based on system type
+			const allowDirectory = system === 'snomed';
+			if (!terminologyUtils.validateFile(filePath, allowDirectory)) {
+				console.error('Invalid file path. Exiting.');
+				process.exit(1);
+			}
+			
+			const fileSize = terminologyUtils.getFileSize(filePath);
+			console.info(`File size: ${fileSize.toFixed(2)} MB`);
+			actualFilePath = safeFilePathFor(filePath);
+		} else {
+			// Find most recent files in temp directory
+			const recentFiles = terminologyUtils.findMostRecentFiles(tempDir, system);
+			if (!recentFiles) {
+				console.error('No recent files found in temp directory. Cannot skip preprocessing.');
+				process.exit(1);
+			}
+			actualFilePath = recentFiles;
+			console.info(`Using most recent files from: ${actualFilePath}`);
 		}
 		
-		const fileSize = terminologyUtils.getFileSize(safePath);
-		console.info(`File size: ${fileSize.toFixed(2)} MB`);
-		
-		const uploadPromise = terminologyUtils.uploadTerminology(safePath, fhirUrl, 'snomed');
-		activeOperations.add(uploadPromise);
-		uploadPromise.finally(() => activeOperations.delete(uploadPromise));
-		await uploadPromise;
-	});
-
-terminologyCommand
-	.command('loinc')
-	.description('Upload LOINC terminology')
-	.argument('<file_path>', 'Path to LOINC CSV file')
-	.argument('<fhir_url>', 'URL of the FHIR server to upload to')
-	.argument('<temp_dir>', 'Temporary directory for staging large terminology files')
-	.option('-d, --dry-run', 'Perform a dry run without uploading any resources')
-	.option('-v, --verbose', 'Enable verbose debugging mode')
-	.option('--batch-size <size>', 'Number of concepts to process in each batch', '1000')
-	.action(async (filePath, fhirUrl, tempDir, options) => {
-		dryRun = options.dryRun;
-		verbose = options.verbose;
-		const batchSize = parseInt(options.batchSize);
-		
-		if (dryRun) {
-			console.log('Dry run enabled. No resources will be uploaded.');
-		}
-		
-		console.info(`Using temporary directory: ${tempDir}`);
-		
-		const safePath = safeFilePathFor(filePath);
-		const terminologyUtils = new TerminologyUtilities(dryRun, verbose, tempDir);
-		
-		if (!terminologyUtils.validateFile(safePath)) {
-			console.error('Invalid file path. Exiting.');
-			process.exit(1);
-		}
-		
-		const fileSize = terminologyUtils.getFileSize(safePath);
-		console.info(`File size: ${fileSize.toFixed(2)} MB`);
-		
-		const processor = new TerminologyProcessor({ dryRun, verbose, batchSize });
-		const codeSystem = await processor.processLoincFile(safePath);
-		
-		// Upload the CodeSystem
-		const uploadPromise = terminologyUtils.uploadResource(codeSystem, fhirUrl, 'CodeSystem');
-		activeOperations.add(uploadPromise);
-		uploadPromise.finally(() => activeOperations.delete(uploadPromise));
-		await uploadPromise;
-	});
-
-terminologyCommand
-	.command('rxnorm')
-	.description('Upload RxNorm terminology')
-	.argument('<file_path>', 'Path to RxNorm CSV file')
-	.argument('<fhir_url>', 'URL of the FHIR server to upload to')
-	.argument('<temp_dir>', 'Temporary directory for staging large terminology files')
-	.option('-d, --dry-run', 'Perform a dry run without uploading any resources')
-	.option('-v, --verbose', 'Enable verbose debugging mode')
-	.option('--batch-size <size>', 'Number of concepts to process in each batch', '1000')
-	.action(async (filePath, fhirUrl, tempDir, options) => {
-		dryRun = options.dryRun;
-		verbose = options.verbose;
-		const batchSize = parseInt(options.batchSize);
-		
-		if (dryRun) {
-			console.log('Dry run enabled. No resources will be uploaded.');
-		}
-		
-		console.info(`Using temporary directory: ${tempDir}`);
-		
-		const safePath = safeFilePathFor(filePath);
-		const terminologyUtils = new TerminologyUtilities(dryRun, verbose, tempDir);
-		
-		if (!terminologyUtils.validateFile(safePath)) {
-			console.error('Invalid file path. Exiting.');
-			process.exit(1);
-		}
-		
-		const fileSize = terminologyUtils.getFileSize(safePath);
-		console.info(`File size: ${fileSize.toFixed(2)} MB`);
-		
-		const processor = new TerminologyProcessor({ dryRun, verbose, batchSize });
-		const codeSystem = await processor.processRxNormFile(safePath);
-		
-		// Upload the CodeSystem
-		const uploadPromise = terminologyUtils.uploadResource(codeSystem, fhirUrl, 'CodeSystem');
-		activeOperations.add(uploadPromise);
-		uploadPromise.finally(() => activeOperations.delete(uploadPromise));
-		await uploadPromise;
+		// Run the import process with skip options
+		const importPromise = terminologyUtils.importTerminologyWithSkips(actualFilePath, fhirUrl, system, {
+			skipPreprocess,
+			skipSplit,
+			skipUpload
+		});
+		activeOperations.add(importPromise);
+		importPromise.finally(() => activeOperations.delete(importPromise));
+		await importPromise;
 	});
 
 

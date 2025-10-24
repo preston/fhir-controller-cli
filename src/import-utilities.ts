@@ -3,7 +3,7 @@
 import fs from 'fs';
 import path from 'path';
 import axios from 'axios';
-import { Bundle, AuditEvent } from 'fhir/r4';
+import type { Bundle, AuditEvent } from 'fhir/r4';
 
 export class ImportUtilities {
 	private dryRun: boolean = false;

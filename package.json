@@ -1,7 +1,8 @@
 {
   "name": "fhir-controller-cli",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "FHIR Controller CLI utilities.",
+  "type": "module",
   "main": "index.js",
   "bin": {
     "fhir-controller": "./build/bin/fhir-controller.js"
@@ -38,14 +39,16 @@
     "axios": "^1.12.2",
     "commander": "^14.0.1",
     "csv-parser": "^3.2.0",
+    "stream-json": "^1.9.1",
     "ts-progress": "^0.1.9"
   },
   "devDependencies": {
     "@types/fhir": "^0.0.41",
     "@types/jest": "^30.0.0",
-    "@types/node": "^24.5.2",
+    "@types/node": "^24.9.1",
+    "@types/stream-json": "^1.7.8",
     "nodemon": "^3.1.10",
-    "ts-jest": "^29.4.4",
+    "ts-jest": "^29.4.5",
     "ts-node": "^10.9.2"
   }
 }
