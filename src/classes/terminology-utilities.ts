@@ -680,7 +680,7 @@ export class TerminologyUtilities {
       },
       {
         code: 'active',
-        valueBoolean: active === '1'
+        valueString: active === '1' ? 'true' : 'false'
       },
       {
         code: 'moduleId',
@@ -862,7 +862,7 @@ export class TerminologyUtilities {
         },
         {
           code: 'active',
-          valueBoolean: active === '1'
+          valueString: active === '1' ? 'true' : 'false'
         },
         {
           code: 'moduleId',
@@ -902,7 +902,7 @@ export class TerminologyUtilities {
   }
 
   /**
-   * Upload SNOMED terminology from JSON file created in Stage 1
+   * Upload SNOMED terminology from base file and chunk files created in Stage 2
    */
   private async uploadSnomedFromJson(
     fhirUrl: string,
@@ -918,23 +918,59 @@ export class TerminologyUtilities {
     
     console.info(`${LogPrefixes.STAGE_3_UPLOAD} Using staging directory: ${stagingDir}`);
     
-    // Find the JSON file created in Stage 1 within the staging directory
-    const jsonFiles = this.fileHandler.listFiles(stagingDir).filter(file => 
-      file.startsWith('sct-') && file.endsWith('.json') && !file.includes('-base') && !file.includes('concepts-chunk')
+    // Find the base file and chunk files created in Stage 2
+    const baseFiles = this.fileHandler.listFiles(stagingDir).filter(file => 
+      file.endsWith('-base.json')
     );
     
-    if (jsonFiles.length === 0) {
-      throw new Error(`No SNOMED JSON files found in staging directory. Please run Stage 1 first.`);
+    const chunkFiles = this.fileHandler.listFiles(stagingDir).filter(file => 
+      file.includes('concepts-chunk-') && file.endsWith('.json')
+    ).sort(); // Sort to ensure proper order
+    
+    if (baseFiles.length === 0) {
+      throw new Error(`No base CodeSystem file found in staging directory. Please run Stage 2 first.`);
     }
     
-    // Use the most recent JSON file
-    const jsonFilePath = path.join(stagingDir, jsonFiles[0]);
-    console.info(`${LogPrefixes.STAGE_3_UPLOAD} Using SNOMED JSON file: ${jsonFilePath}`);
+    if (chunkFiles.length === 0) {
+      throw new Error(`No concept chunk files found in staging directory. Please run Stage 2 first.`);
+    }
     
-    // Load the CodeSystem JSON file and upload it
-    const codeSystem = await this.fileHandler.readJsonFile(jsonFilePath);
-    await handler.uploadCodeSystem(codeSystem, fhirUrl);
+    const baseFilePath = path.join(stagingDir, baseFiles[0]);
+    console.info(`${LogPrefixes.STAGE_3_UPLOAD} Using base CodeSystem file: ${baseFilePath}`);
+    console.info(`${LogPrefixes.STAGE_3_UPLOAD} Found ${chunkFiles.length} concept chunk files`);
     
+    // Use StagedUploadStrategy to handle the upload process
+    const { StagedUploadStrategy } = await import('./strategies/staged-upload-strategy.js');
+    const stagedStrategy = new StagedUploadStrategy({
+      dryRun: this.dryRun,
+      verbose: this.verbose,
+      tempDir: this.tempDir,
+      keepTemp: this.keepTemp
+    });
+    
+    // Upload base CodeSystem (metadata only)
+    console.info(`${LogPrefixes.STAGE_3_UPLOAD} Uploading base CodeSystem...`);
+    const baseContent = this.fileHandler.readFile(baseFilePath);
+    const baseCodeSystem = JSON.parse(baseContent);
+    await handler.uploadCodeSystem(baseCodeSystem, fhirUrl);
+    console.info(`${LogPrefixes.STAGE_3_UPLOAD} Successfully uploaded base CodeSystem ${baseCodeSystem.id}`);
+    
+    // Upload concept chunks using delta operations via StagedUploadStrategy
+    console.info(`${LogPrefixes.STAGE_3_UPLOAD} Uploading ${chunkFiles.length} concept chunks...`);
+    for (let i = 0; i < chunkFiles.length; i++) {
+      const chunkFile = path.join(stagingDir, chunkFiles[i]);
+      console.info(`${LogPrefixes.STAGE_3_UPLOAD} Uploading chunk ${i + 1}/${chunkFiles.length}: ${chunkFiles[i]}`);
+      
+      // Use the existing method from StagedUploadStrategy
+      await stagedStrategy.applyCodeSystemDeltaAdd(baseCodeSystem.id, fhirUrl, chunkFile);
+      
+      // Log progress every 10 chunks
+      if ((i + 1) % 10 === 0) {
+        console.info(`${LogPrefixes.STAGE_3_UPLOAD} Progress: ${i + 1}/${chunkFiles.length} chunks uploaded`);
+      }
+    }
+    
+    console.info(`${LogPrefixes.STAGE_3_UPLOAD} Successfully uploaded CodeSystem ${baseCodeSystem.id} with ${chunkFiles.length} concept chunks`);
     console.info(`${LogPrefixes.VALUESET} Skipping ValueSet creation to avoid memory issues with large SNOMED CT datasets`);
     
     await handler.printResourceSummary(fhirUrl, 'SNOMED CT');

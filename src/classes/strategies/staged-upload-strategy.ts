@@ -264,7 +264,7 @@ export class StagedUploadStrategy extends UploadStrategy {
   /**
    * Apply CodeSystem delta add operation
    */
-  private async applyCodeSystemDeltaAdd(codeSystemId: string, fhirUrl: string, chunkFilePath: string): Promise<void> {
+  async applyCodeSystemDeltaAdd(codeSystemId: string, fhirUrl: string, chunkFilePath: string): Promise<void> {
     console.info(`${LogPrefixes.STAGE_3_UPLOAD} Applying delta add for CodeSystem ${codeSystemId} from chunk: ${path.basename(chunkFilePath)}`);
     
     try {
