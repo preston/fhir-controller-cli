@@ -127,7 +127,7 @@ export class Rf2FileReader implements ITerminologyFileReader {
         resolve(concepts);
       });
 
-      rl.on('error', (error) => {
+      rl.on('error', (error: any) => {
         console.error(`${LogPrefixes.STAGE_3_UPLOAD} Error reading concept file: ${error}`);
         reject(error);
       });

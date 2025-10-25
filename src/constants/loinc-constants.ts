@@ -46,6 +46,14 @@ export const LOINC_RESOURCE_INFO = {
 } as const;
 
 /**
+ * LOINC Display Information
+ */
+export const LOINC_DISPLAY_INFO = {
+  NAME: 'LOINC',
+  DESCRIPTION: 'Logical Observation Identifiers Names and Codes'
+} as const;
+
+/**
  * TypeScript Enums for Type Safety
  */
 export enum LoincPropertyCode {

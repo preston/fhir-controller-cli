@@ -47,6 +47,14 @@ export const SNOMED_FHIR_URLS = {
 } as const;
 
 /**
+ * SNOMED CT Display Information
+ */
+export const SNOMED_DISPLAY_INFO = {
+  NAME: 'SNOMED CT',
+  DESCRIPTION: 'Systematized Nomenclature of Medicine Clinical Terms'
+} as const;
+
+/**
  * SNOMED CT Relationship Type Display Names
  */
 export const SNOMED_RELATIONSHIP_TYPES: Record<string, string> = {

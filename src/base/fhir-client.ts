@@ -148,6 +148,22 @@ export class FhirClient {
   }
 
   /**
+   * Search for FHIR resources using a search URL
+   */
+  async searchResources(searchUrl: string): Promise<any> {
+    try {
+      const response = await axios.get(searchUrl, {
+        headers: {
+          'Accept': 'application/fhir+json',
+        },
+      });
+      return response;
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+  /**
    * Safe JSON stringify that handles circular references
    */
   protected safeStringify(obj: any): string {

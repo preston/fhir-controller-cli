@@ -39,6 +39,14 @@ export const RXNORM_RESOURCE_INFO = {
 } as const;
 
 /**
+ * RxNorm Display Information
+ */
+export const RXNORM_DISPLAY_INFO = {
+  NAME: 'RxNorm',
+  DESCRIPTION: 'Normalized Names for Clinical Drugs'
+} as const;
+
+/**
  * RxNorm RRF Data Fields
  * Based on RXNCONSO.RRF format: RXCUI|LAT|TS|STT|SUI|ISPREF|AUI|SAUI|SCUI|SDUI|SAB|TTY|CODE|STR|SBR|VER|RELEASE|SRL|SUPPRESS|CVF
  */

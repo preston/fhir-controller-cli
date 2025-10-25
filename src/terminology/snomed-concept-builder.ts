@@ -191,8 +191,7 @@ export class SnomedConceptBuilder {
       '408729009': 'Finding context',
       '408731000': 'Temporal context',
       '408732007': 'Subject relationship context',
-      '408730004': 'Subject relationship context',
-      '408732007': 'Subject relationship context'
+      '408730004': 'Subject relationship context'
     };
     
     return relationshipTypes[typeId] || `Relationship Type ${typeId}`;

@@ -4,9 +4,9 @@ import { FhirClient } from '../base/fhir-client.js';
 import { FileHandler } from '../base/file-handler.js';
 import { UploadStrategyFactory } from '../strategies/upload-strategy-factory.js';
 import { TerminologyFileInfo } from '../types/terminology-config.js';
-import { SNOMED_FHIR_URLS } from '../constants/snomed-constants.js';
-import { LOINC_FHIR_URLS } from '../constants/loinc-constants.js';
-import { RXNORM_FHIR_URLS } from '../constants/rxnorm-constants.js';
+import { SNOMED_FHIR_URLS, SNOMED_DISPLAY_INFO } from '../constants/snomed-constants.js';
+import { LOINC_FHIR_URLS, LOINC_DISPLAY_INFO } from '../constants/loinc-constants.js';
+import { RXNORM_FHIR_URLS, RXNORM_DISPLAY_INFO } from '../constants/rxnorm-constants.js';
 import { LogPrefixes } from '../constants/log-prefixes.js';
 
 export interface TerminologyHandlerConfig {
@@ -83,7 +83,9 @@ export abstract class BaseTerminologyHandler {
 
   protected async printResourceSummary(fhirUrl: string, terminologyType: string): Promise<void> {
     try {
-      console.info(`\n${LogPrefixes.SUMMARY} Querying ${terminologyType} resource counts...`);
+      const displayName = this.getTerminologyDisplayName(terminologyType);
+        
+      console.info(`\n${LogPrefixes.SUMMARY} Querying ${displayName} resource counts...`);
       
       const codeSystemCount = await this.fhirClient.getResourceCount(fhirUrl, 'CodeSystem');
       
@@ -91,7 +93,7 @@ export abstract class BaseTerminologyHandler {
       
       const terminologyCodeSystems = await this.queryTerminologyResources(fhirUrl, terminologyType);
       
-      console.info(`\n${terminologyType} Import Summary:`);
+      console.info(`\n${displayName} Import Summary:`);
       console.info(`   CodeSystems: ${terminologyCodeSystems.length}`);
       console.info(`   ValueSets: ${terminologyCodeSystems.length}`);
       
@@ -111,29 +113,54 @@ export abstract class BaseTerminologyHandler {
 
   private async queryTerminologyResources(fhirUrl: string, terminologyType: string): Promise<any[]> {
     try {
-      let searchParams = '';
+      const systemUrl = this.getTerminologySystemUrl(terminologyType);
       
-      switch (terminologyType) {
-        case 'SNOMED CT':
-          searchParams = `url=${SNOMED_FHIR_URLS.SYSTEM}`;
-          break;
-        case 'LOINC':
-          searchParams = `url=${LOINC_FHIR_URLS.SYSTEM}`;
-          break;
-        case 'RxNorm':
-          searchParams = `url=${RXNORM_FHIR_URLS.SYSTEM}`;
-          break;
-        default:
-          return [];
+      if (!systemUrl) {
+        console.warn(`${LogPrefixes.SUMMARY} Unknown terminology type: ${terminologyType}`);
+        return [];
       }
       
-      const axios = require('axios');
-      const response = await axios.get(`${fhirUrl}/CodeSystem?${searchParams}`);
+      const searchUrl = `${fhirUrl}/CodeSystem?url=${encodeURIComponent(systemUrl)}`;
+      
+      // Use the FhirClient's searchResources method
+      const response = await this.fhirClient.searchResources(searchUrl);
       return response.data.entry?.map((entry: any) => entry.resource) || [];
       
     } catch (error: any) {
       console.warn(`${LogPrefixes.SUMMARY} Could not query ${terminologyType} resources: ${error?.response?.status || error.message}`);
       return [];
+    }
+  }
+
+  /**
+   * Get the display name for a terminology type
+   */
+  private getTerminologyDisplayName(terminologyType: string): string {
+    switch (terminologyType) {
+      case 'SNOMED CT':
+        return SNOMED_DISPLAY_INFO.NAME;
+      case 'LOINC':
+        return LOINC_DISPLAY_INFO.NAME;
+      case 'RxNorm':
+        return RXNORM_DISPLAY_INFO.NAME;
+      default:
+        return terminologyType;
+    }
+  }
+
+  /**
+   * Get the system URL for a terminology type
+   */
+  private getTerminologySystemUrl(terminologyType: string): string | null {
+    switch (terminologyType) {
+      case 'SNOMED CT':
+        return SNOMED_FHIR_URLS.SYSTEM;
+      case 'LOINC':
+        return LOINC_FHIR_URLS.SYSTEM;
+      case 'RxNorm':
+        return RXNORM_FHIR_URLS.SYSTEM;
+      default:
+        return null;
     }
   }
 }
