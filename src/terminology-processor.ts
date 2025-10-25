@@ -4,7 +4,7 @@ import { createReadStream } from 'fs';
 import csv from 'csv-parser';
 import readline from 'readline';
 import type { CodeSystem, ValueSet, ConceptMap, Coding, CodeableConcept } from 'fhir/r4';
-import { TerminologyProcessorConfig } from '../types/terminology-config.js';
+import { TerminologyProcessorConfig } from './types/terminology-config.js';
 import { 
   SNOMED_CONCEPT_IDS, 
   SNOMED_FHIR_URLS, 
@@ -12,20 +12,20 @@ import {
   SNOMED_DISPLAY_NAMES, 
   SNOMED_LANGUAGES, 
   SNOMED_PROPERTY_CODES 
-} from '../constants/snomed-constants.js';
+} from './constants/snomed-constants.js';
 import { 
   LOINC_FHIR_URLS, 
   LOINC_PROPERTY_CODES, 
   LOINC_ORGANIZATION, 
   LOINC_RESOURCE_INFO 
-} from '../constants/loinc-constants.js';
+} from './constants/loinc-constants.js';
 import { 
   RXNORM_FHIR_URLS, 
   RXNORM_PROPERTY_CODES, 
   RXNORM_ORGANIZATION, 
   RXNORM_RESOURCE_INFO,
   RXNORM_RRF_FIELDS 
-} from '../constants/rxnorm-constants.js';
+} from './constants/rxnorm-constants.js';
 
 export class TerminologyProcessor {
   private config: TerminologyProcessorConfig;

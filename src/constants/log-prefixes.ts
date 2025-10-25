@@ -27,9 +27,6 @@ export const LogPrefixes = {
   // Summary operations
   SUMMARY: '[SUMMARY]',
   
-  // Delta operations (for CodeSystem updates)
-  DELTA: '[DELTA]',
-  
   // Staging operations
   STAGING: '[STAGING]',
   

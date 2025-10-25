@@ -1,7 +1,7 @@
 import type { CodeSystem, ValueSet } from 'fhir/r4';
 import { BaseTerminologyHandler, TerminologyHandlerConfig } from './base-terminology-handler.js';
-import { TerminologyFileInfo } from '../../types/terminology-config.js';
-import { LogPrefixes } from '../../constants/log-prefixes.js';
+import { TerminologyFileInfo } from '../types/terminology-config.js';
+import { LogPrefixes } from '../constants/log-prefixes.js';
 
 export class RxNormHandler extends BaseTerminologyHandler {
   constructor(config: TerminologyHandlerConfig) {
@@ -11,8 +11,14 @@ export class RxNormHandler extends BaseTerminologyHandler {
   async processAndUpload(fileInfo: TerminologyFileInfo, fhirUrl: string): Promise<void> {
     console.info(`${LogPrefixes.STAGE_3_UPLOAD} Starting RxNorm terminology processing...`);
 
+    // Get expected IDs for potential deletion
+    const expectedIds = this.getExpectedIds();
+    
+    // Delete existing CodeSystems if replace option is enabled
+    await this.deleteExistingCodeSystems(fhirUrl, expectedIds);
+
     const exists = await this.checkExists(fhirUrl);
-    if (exists) {
+    if (exists && !this.config.replace) {
       console.info(`${LogPrefixes.SKIP} RxNorm CodeSystem already exists on server, skipping processing`);
       return;
     }

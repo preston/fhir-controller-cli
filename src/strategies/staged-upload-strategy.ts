@@ -2,21 +2,20 @@
 
 import fs from 'fs';
 import path from 'path';
-import readline from 'readline';
 import axios from 'axios';
-import chain from 'stream-chain';
-import streamJson from 'stream-json';
-import pick from 'stream-json/filters/Pick';
-import streamArray from 'stream-json/streamers/StreamArray';
 import { UploadStrategy, UploadStrategyConfig } from './upload-strategy.js';
-import { SNOMED_FHIR_URLS } from '../../constants/snomed-constants.js';
-import { LOINC_FHIR_URLS } from '../../constants/loinc-constants.js';
-import { RXNORM_FHIR_URLS } from '../../constants/rxnorm-constants.js';
-import { LogPrefixes } from '../../constants/log-prefixes.js';
+import { CodeSystemChunker } from '../utilities/codesystem-chunker.js';
+import { SNOMED_FHIR_URLS } from '../constants/snomed-constants.js';
+import { LOINC_FHIR_URLS } from '../constants/loinc-constants.js';
+import { RXNORM_FHIR_URLS } from '../constants/rxnorm-constants.js';
+import { LogPrefixes } from '../constants/log-prefixes.js';
 
 export class StagedUploadStrategy extends UploadStrategy {
+  private codeSystemChunker: CodeSystemChunker;
+
   constructor(config: UploadStrategyConfig) {
     super(config);
+    this.codeSystemChunker = new CodeSystemChunker({ verbose: config.verbose });
   }
 
   /**
@@ -144,129 +143,11 @@ export class StagedUploadStrategy extends UploadStrategy {
     });
   }
 
-  /**
-   * Split large CodeSystem file into base metadata and concept chunks using streaming JSON parser
-   */
-  private async splitCodeSystemFile(stagedFilePath: string): Promise<{ baseFile: string; chunkFiles: string[] }> {
-    console.info(`${LogPrefixes.STAGE_2_SPLIT} Splitting large CodeSystem file: ${stagedFilePath}`);
-    
-    const baseFile = stagedFilePath.replace('.json', '-base.json');
-    const chunkFiles: string[] = [];
-    const stagingDir = path.dirname(stagedFilePath);
-    
-    let conceptCount = 0;
-    let chunkIndex = 0;
-    const chunkSize = 1000;
-    let currentChunk: any[] = [];
-    let lastStatusUpdate = Date.now();
-    let codeSystemMetadata: any = null;
-    
-    // Helper function to write a chunk file
-    const writeChunk = (concepts: any[], chunkIndex: number): string => {
-      const chunkFile = path.join(stagingDir, `concepts-chunk-${chunkIndex.toString().padStart(4, '0')}.json`);
-      fs.writeFileSync(chunkFile, JSON.stringify(concepts, null, 2));
-      return chunkFile;
-    };
-    
-    return new Promise((resolve, reject) => {
-      // First, extract metadata by reading the beginning of the file
-      const metadataStream = fs.createReadStream(stagedFilePath, { encoding: 'utf8', start: 0, end: 10000 });
-      let metadataContent = '';
-      
-      metadataStream.on('data', (chunk) => {
-        metadataContent += chunk;
-      });
-      
-      metadataStream.on('end', () => {
-        try {
-          // Extract metadata before concept array
-          const conceptStart = metadataContent.indexOf('"concept": [');
-          if (conceptStart > 0) {
-            const metadataJson = metadataContent.substring(0, conceptStart) + '"concept": []\n}';
-            codeSystemMetadata = JSON.parse(metadataJson);
-            console.info(`${LogPrefixes.STAGE_2_SPLIT} Extracted CodeSystem metadata`);
-          } else {
-            throw new Error('Could not find concept array in CodeSystem file');
-          }
-        } catch (parseError) {
-          reject(new Error(`Failed to parse CodeSystem metadata: ${parseError}`));
-          return;
-        }
-        
-        // Now process the concepts using streaming JSON parser
-        const pipeline = new chain([
-          fs.createReadStream(stagedFilePath),
-          streamJson.parser(),
-          new pick({ filter: 'concept' }),
-          new streamArray()
-        ]);
-        
-        pipeline.on('data', (data: any) => {
-          try {
-            const concept = data.value;
-            currentChunk.push(concept);
-            conceptCount++;
-            
-            // Write chunk when we reach chunk size
-            if (currentChunk.length >= chunkSize) {
-              const chunkFile = writeChunk(currentChunk, chunkIndex);
-              chunkFiles.push(chunkFile);
-              console.info(`${LogPrefixes.STAGE_2_SPLIT} Created chunk ${chunkIndex} with ${currentChunk.length} concepts (total: ${conceptCount})`);
-              currentChunk = [];
-              chunkIndex++;
-            }
-            
-            // Provide status updates every 5 seconds
-            const now = Date.now();
-            if (now - lastStatusUpdate > 5000) {
-              console.info(`${LogPrefixes.STAGE_2_SPLIT} Processed ${conceptCount} concepts so far...`);
-              lastStatusUpdate = now;
-            }
-          } catch (error) {
-            console.warn(`${LogPrefixes.STAGE_2_SPLIT} Skipping malformed concept: ${error}`);
-          }
-        });
-        
-        pipeline.on('end', () => {
-          try {
-            // Write final chunk if we have remaining concepts
-            if (currentChunk.length > 0) {
-              const chunkFile = writeChunk(currentChunk, chunkIndex);
-              chunkFiles.push(chunkFile);
-              console.info(`${LogPrefixes.STAGE_2_SPLIT} Created final chunk ${chunkIndex} with ${currentChunk.length} concepts`);
-            }
-            
-            // Write base CodeSystem file with metadata but no concepts
-            if (codeSystemMetadata) {
-              fs.writeFileSync(baseFile, JSON.stringify(codeSystemMetadata, null, 2));
-              console.info(`${LogPrefixes.STAGE_2_SPLIT} Created base CodeSystem with ${chunkFiles.length} concept chunks (${conceptCount} total concepts)`);
-            }
-            
-            console.info(`${LogPrefixes.STAGE_2_SPLIT} Successfully processed ${conceptCount} concepts`);
-            resolve({ baseFile, chunkFiles });
-          } catch (error) {
-            reject(new Error(`Failed to create base CodeSystem file: ${error}`));
-          }
-        });
-        
-        pipeline.on('error', (error: any) => {
-          console.error(`${LogPrefixes.STAGE_2_SPLIT} Pipeline error:`, error);
-          reject(error);
-        });
-      });
-      
-      metadataStream.on('error', (error) => {
-        reject(new Error(`Failed to read CodeSystem file for metadata: ${error}`));
-      });
-    });
-  }
 
   /**
    * Apply CodeSystem delta add operation
    */
-  async applyCodeSystemDeltaAdd(codeSystemId: string, fhirUrl: string, chunkFilePath: string): Promise<void> {
-    console.info(`${LogPrefixes.STAGE_3_UPLOAD} Applying delta add for CodeSystem ${codeSystemId} from chunk: ${path.basename(chunkFilePath)}`);
-    
+  async applyCodeSystemDeltaAdd(codeSystemId: string, fhirUrl: string, chunkFilePath: string, chunkInfo?: { current: number; total: number }): Promise<void> {
     try {
       // Read the chunk file (small, safe to load)
       const chunkContent = fs.readFileSync(chunkFilePath, 'utf8');
@@ -293,10 +174,9 @@ export class StagedUploadStrategy extends UploadStrategy {
         ]
       };
       
-      // Debug: Log the parameters being sent
-      console.info(`${LogPrefixes.DELTA} Sending parameters with ${parameters.parameter.length} parameter(s)`);
-      console.info(`${LogPrefixes.DELTA} System URI: ${parameters.parameter[0].valueUri}`);
-      console.info(`${LogPrefixes.DELTA} Concepts count: ${concepts.length}`);
+      // Single consolidated log message
+      const chunkProgress = chunkInfo ? `chunk ${chunkInfo.current}/${chunkInfo.total}` : 'chunk';
+      console.info(`${LogPrefixes.STAGE_3_UPLOAD} Uploading ${chunkProgress}: ${path.basename(chunkFilePath)} | Applying delta add for CodeSystem ${codeSystemId} with ${concepts.length} concepts to system: ${parameters.parameter[0].valueUri}`);
       
       const response = await axios.post(
         `${fhirUrl}/CodeSystem/$apply-codesystem-delta-add`,
@@ -310,9 +190,9 @@ export class StagedUploadStrategy extends UploadStrategy {
         }
       );
       
-      console.info(`${LogPrefixes.DELTA} Successfully applied delta add: ${response.status} ${response.statusText}`);
+      console.info(`${LogPrefixes.STAGE_3_UPLOAD} Successfully applied delta add: ${response.status} ${response.statusText}`);
     } catch (error: any) {
-      console.error(`${LogPrefixes.DELTA} Failed to apply delta add:`, error?.response?.status, error?.response?.statusText);
+      console.error(`${LogPrefixes.STAGE_3_UPLOAD} Failed to apply delta add:`, error?.response?.status, error?.response?.statusText);
       if (error?.response?.data) {
         console.error(JSON.stringify(error.response.data, null, 2));
       }
@@ -331,7 +211,7 @@ export class StagedUploadStrategy extends UploadStrategy {
     
     try {
       // Step 1: Split the large file into base + chunks
-      const splitResult = await this.splitCodeSystemFile(filePath);
+      const splitResult = await this.codeSystemChunker.splitCodeSystemFile(filePath, path.dirname(filePath));
       baseFile = splitResult.baseFile;
       chunkFiles = splitResult.chunkFiles;
       
@@ -346,9 +226,8 @@ export class StagedUploadStrategy extends UploadStrategy {
       console.info(`${LogPrefixes.STAGING} Uploading ${chunkFiles.length} concept chunks...`);
       for (let i = 0; i < chunkFiles.length; i++) {
         const chunkFile = chunkFiles[i];
-        console.info(`${LogPrefixes.STAGING} Uploading chunk ${i + 1}/${chunkFiles.length}: ${path.basename(chunkFile)}`);
         
-        await this.applyCodeSystemDeltaAdd(codeSystemId, fhirUrl, chunkFile);
+        await this.applyCodeSystemDeltaAdd(codeSystemId, fhirUrl, chunkFile, { current: i + 1, total: chunkFiles.length });
         
         // Log progress every 10 chunks
         if ((i + 1) % 10 === 0) {

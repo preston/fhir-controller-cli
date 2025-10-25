@@ -3,11 +3,11 @@ import { TerminologyProcessor } from '../terminology-processor.js';
 import { FhirClient } from '../base/fhir-client.js';
 import { FileHandler } from '../base/file-handler.js';
 import { UploadStrategyFactory } from '../strategies/upload-strategy-factory.js';
-import { TerminologyFileInfo } from '../../types/terminology-config.js';
-import { SNOMED_FHIR_URLS } from '../../constants/snomed-constants.js';
-import { LOINC_FHIR_URLS } from '../../constants/loinc-constants.js';
-import { RXNORM_FHIR_URLS } from '../../constants/rxnorm-constants.js';
-import { LogPrefixes } from '../../constants/log-prefixes.js';
+import { TerminologyFileInfo } from '../types/terminology-config.js';
+import { SNOMED_FHIR_URLS } from '../constants/snomed-constants.js';
+import { LOINC_FHIR_URLS } from '../constants/loinc-constants.js';
+import { RXNORM_FHIR_URLS } from '../constants/rxnorm-constants.js';
+import { LogPrefixes } from '../constants/log-prefixes.js';
 
 export interface TerminologyHandlerConfig {
   dryRun: boolean;

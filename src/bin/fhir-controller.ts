@@ -9,7 +9,7 @@ import axios from 'axios';
 
 import { SyntheaUtilities } from '../synthea-utilities.js';
 import { ImportUtilities } from '../import-utilities.js';
-import { TerminologyUtilities } from '../classes/terminology-utilities.js';
+import { TerminologyUtilities } from '../terminology-utilities.js';
 import { LogPrefixes } from '../constants/log-prefixes.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -152,7 +152,7 @@ terminologyCommand
 			actualFilePath = safeFilePathFor(filePath);
 		} else {
 			// Find most recent files in temp directory
-			const recentFiles = terminologyUtils.findMostRecentFiles(tempDir, system);
+			const recentFiles = terminologyUtils.fileHandler.findMostRecentFiles(tempDir, system);
 			if (!recentFiles) {
 				console.error('No recent files found in temp directory. Cannot skip preprocessing.');
 				process.exit(1);
