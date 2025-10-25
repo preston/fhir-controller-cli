@@ -374,7 +374,10 @@ export class TerminologyUtilities {
     }
     
     console.info(`${LogPrefixes.STAGE_3_UPLOAD} Successfully uploaded CodeSystem ${baseCodeSystem.id} with ${chunkFiles.length} concept chunks`);
-    console.info(`${LogPrefixes.VALUESET} Skipping ValueSet creation to avoid memory issues with large SNOMED CT datasets`);
+    
+    // Create and upload ValueSet using the StagedUploadStrategy
+    console.info(`${LogPrefixes.VALUESET} Creating ValueSet for all codes in CodeSystem ${baseCodeSystem.id}...`);
+    await stagedStrategy.createAndUploadValueSet(baseCodeSystem, fhirUrl);
     
     await handler.printResourceSummary(fhirUrl, 'SNOMED CT');
   }

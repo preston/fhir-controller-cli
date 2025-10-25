@@ -1,14 +1,8 @@
 // Author: Preston Lee
 // LOINC Constants and Identifiers
 
-/**
- * LOINC FHIR URLs and Systems
- */
-export const LOINC_FHIR_URLS = {
-  SYSTEM: 'http://loinc.org',
-  FHIR_BASE: 'http://loinc.org/fhir',
-  VERSION_CURRENT: 'http://loinc.org/version/current'
-} as const;
+import type { TerminologyInfo } from '../types/terminology-constants.js';
+
 
 /**
  * LOINC Property Codes
@@ -26,50 +20,31 @@ export const LOINC_PROPERTY_CODES = {
   CLASSTYPE: 'classtype'
 } as const;
 
+
 /**
- * LOINC Organization Information
+ * LOINC ValueSet Information
  */
-export const LOINC_ORGANIZATION = {
-  NAME: 'Regenstrief Institute',
-  WEBSITE: 'https://loinc.org',
-  LICENSE_URL: 'https://loinc.org/license/',
-  COPYRIGHT: 'This value set includes content from LOINC, which is copyright © 1995+ Regenstrief Institute, Inc. and the LOINC Committee, and is available at no cost under the license at https://loinc.org/license/'
+export const LOINC_TERMINOLOGY_INFO: TerminologyInfo = {
+  identity: {
+    name: 'LOINC',
+    displayName: 'LOINC',
+    description: 'Logical Observation Identifiers Names and Codes',
+    terminologyType: 'LOINC'
+  },
+  publisher: {
+    name: 'Regenstrief Institute',
+    website: 'https://loinc.org',
+    licenseUrl: 'https://loinc.org/license/',
+    copyright: 'This value set includes content from LOINC, which is copyright © 1995+ Regenstrief Institute, Inc. and the Logical Observation Identifiers Names and Codes (LOINC) Committee.'
+  },
+  fhirUrls: {
+    system: 'http://loinc.org',
+    fhirBase: 'http://loinc.org/fhir',
+    versionCurrent: 'http://loinc.org/version/current'
+  },
+  valueSetMetadata: {
+    titleSuffix: 'ValueSet - All Codes',
+    descriptionPrefix: 'ValueSet containing all codes from the LOINC CodeSystem'
+  }
 } as const;
 
-/**
- * LOINC Resource Information
- */
-export const LOINC_RESOURCE_INFO = {
-  TITLE: 'Logical Observation Identifiers Names and Codes',
-  DESCRIPTION: 'Logical Observation Identifiers Names and Codes (LOINC) is a universal code system for identifying health measurements, observations, and documents.',
-  PUBLISHER: 'Regenstrief Institute'
-} as const;
-
-/**
- * LOINC Display Information
- */
-export const LOINC_DISPLAY_INFO = {
-  NAME: 'LOINC',
-  DESCRIPTION: 'Logical Observation Identifiers Names and Codes'
-} as const;
-
-/**
- * TypeScript Enums for Type Safety
- */
-export enum LoincPropertyCode {
-  TTY = 'tty',
-  SAB = 'sab',
-  COMPONENT = 'component',
-  PROPERTY = 'property',
-  TIME = 'time',
-  SYSTEM = 'system',
-  SCALE = 'scale',
-  METHOD = 'method',
-  CLASS = 'class',
-  CLASSTYPE = 'classtype'
-}
-
-export enum LoincResourceType {
-  CODESYSTEM = 'CodeSystem',
-  VALUESET = 'ValueSet'
-}

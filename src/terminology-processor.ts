@@ -7,23 +7,19 @@ import type { CodeSystem, ValueSet, ConceptMap, Coding, CodeableConcept } from '
 import { TerminologyProcessorConfig } from './types/terminology-config.js';
 import { 
   SNOMED_CONCEPT_IDS, 
-  SNOMED_FHIR_URLS, 
+  SNOMED_TERMINOLOGY_INFO, 
   SNOMED_RELATIONSHIP_TYPES, 
   SNOMED_DISPLAY_NAMES, 
   SNOMED_LANGUAGES, 
   SNOMED_PROPERTY_CODES 
 } from './constants/snomed-constants.js';
 import { 
-  LOINC_FHIR_URLS, 
-  LOINC_PROPERTY_CODES, 
-  LOINC_ORGANIZATION, 
-  LOINC_RESOURCE_INFO 
+  LOINC_TERMINOLOGY_INFO, 
+  LOINC_PROPERTY_CODES
 } from './constants/loinc-constants.js';
 import { 
-  RXNORM_FHIR_URLS, 
-  RXNORM_PROPERTY_CODES, 
-  RXNORM_ORGANIZATION, 
-  RXNORM_RESOURCE_INFO,
+  RXNORM_TERMINOLOGY_INFO, 
+  RXNORM_PROPERTY_CODES,
   RXNORM_RRF_FIELDS 
 } from './constants/rxnorm-constants.js';
 
@@ -440,19 +436,19 @@ export class TerminologyProcessor {
           {
             extension: [
               {
-                url: SNOMED_FHIR_URLS.DESIGNATION_USE_CONTEXT_EXTENSION,
+                url: SNOMED_TERMINOLOGY_INFO.fhirUrls.designationUseContextExtension,
                 extension: [
                   {
                     url: 'context',
                     valueCoding: {
-                      system: SNOMED_FHIR_URLS.SYSTEM,
+                      system: SNOMED_TERMINOLOGY_INFO.fhirUrls.system,
                       code: SNOMED_CONCEPT_IDS.CONTEXT
                     }
                   },
                   {
                     url: 'role',
                     valueCoding: {
-                      system: SNOMED_FHIR_URLS.SYSTEM,
+                      system: SNOMED_TERMINOLOGY_INFO.fhirUrls.system,
                       code: SNOMED_CONCEPT_IDS.PREFERRED_ROLE,
                       display: SNOMED_DISPLAY_NAMES.PREFERRED
                     }
@@ -460,7 +456,7 @@ export class TerminologyProcessor {
                   {
                     url: 'type',
                     valueCoding: {
-                      system: SNOMED_FHIR_URLS.SYSTEM,
+                      system: SNOMED_TERMINOLOGY_INFO.fhirUrls.system,
                       code: SNOMED_CONCEPT_IDS.FULLY_SPECIFIED_NAME,
                       display: SNOMED_DISPLAY_NAMES.FULLY_SPECIFIED_NAME
                     }
@@ -470,7 +466,7 @@ export class TerminologyProcessor {
             ],
             language: SNOMED_LANGUAGES.ENGLISH,
             use: {
-              system: SNOMED_FHIR_URLS.SYSTEM,
+              system: SNOMED_TERMINOLOGY_INFO.fhirUrls.system,
               code: SNOMED_CONCEPT_IDS.FULLY_SPECIFIED_NAME,
               display: SNOMED_DISPLAY_NAMES.FULLY_SPECIFIED_NAME
             },
@@ -479,19 +475,19 @@ export class TerminologyProcessor {
           {
             extension: [
               {
-                url: SNOMED_FHIR_URLS.DESIGNATION_USE_CONTEXT_EXTENSION,
+                url: SNOMED_TERMINOLOGY_INFO.fhirUrls.designationUseContextExtension,
                 extension: [
                   {
                     url: 'context',
                     valueCoding: {
-                      system: SNOMED_FHIR_URLS.SYSTEM,
+                      system: SNOMED_TERMINOLOGY_INFO.fhirUrls.system,
                       code: SNOMED_CONCEPT_IDS.CONTEXT
                     }
                   },
                   {
                     url: 'role',
                     valueCoding: {
-                      system: SNOMED_FHIR_URLS.SYSTEM,
+                      system: SNOMED_TERMINOLOGY_INFO.fhirUrls.system,
                       code: SNOMED_CONCEPT_IDS.PREFERRED_ROLE,
                       display: SNOMED_DISPLAY_NAMES.PREFERRED
                     }
@@ -499,7 +495,7 @@ export class TerminologyProcessor {
                   {
                     url: 'type',
                     valueCoding: {
-                      system: SNOMED_FHIR_URLS.SYSTEM,
+                      system: SNOMED_TERMINOLOGY_INFO.fhirUrls.system,
                       code: SNOMED_CONCEPT_IDS.SYNONYM,
                       display: SNOMED_DISPLAY_NAMES.SYNONYM
                     }
@@ -509,7 +505,7 @@ export class TerminologyProcessor {
             ],
             language: SNOMED_LANGUAGES.ENGLISH, 
             use: {
-              system: SNOMED_FHIR_URLS.SYSTEM,
+              system: SNOMED_TERMINOLOGY_INFO.fhirUrls.system,
               code: SNOMED_CONCEPT_IDS.SYNONYM,
               display: SNOMED_DISPLAY_NAMES.SYNONYM
             },
@@ -617,14 +613,14 @@ export class TerminologyProcessor {
     return {
       resourceType: 'CodeSystem',
       id: 'loinc-current',
-      url: LOINC_FHIR_URLS.SYSTEM,
-      version: LOINC_FHIR_URLS.VERSION_CURRENT,
+      url: LOINC_TERMINOLOGY_INFO.fhirUrls.system,
+      version: LOINC_TERMINOLOGY_INFO.fhirUrls.versionCurrent,
       name: 'LOINC',
-      title: LOINC_RESOURCE_INFO.TITLE,
+      title: LOINC_TERMINOLOGY_INFO.identity.name,
       status: 'active',
       date: new Date().toISOString().split('T')[0] + 'T00:00:00+00:00',
-      publisher: LOINC_RESOURCE_INFO.PUBLISHER,
-      description: LOINC_RESOURCE_INFO.DESCRIPTION,
+      publisher: LOINC_TERMINOLOGY_INFO.publisher.name,
+      description: LOINC_TERMINOLOGY_INFO.identity.description,
       caseSensitive: true,
       compositional: false,
       versionNeeded: false,
@@ -634,13 +630,13 @@ export class TerminologyProcessor {
       property: [
         {
           code: LOINC_PROPERTY_CODES.TTY,
-          uri: `${LOINC_FHIR_URLS.SYSTEM}#${LOINC_PROPERTY_CODES.TTY}`,
+          uri: `${LOINC_TERMINOLOGY_INFO.fhirUrls.system}#${LOINC_PROPERTY_CODES.TTY}`,
           description: 'Term type',
           type: 'string'
         },
         {
           code: LOINC_PROPERTY_CODES.SAB,
-          uri: `${LOINC_FHIR_URLS.SYSTEM}#${LOINC_PROPERTY_CODES.SAB}`,
+          uri: `${LOINC_TERMINOLOGY_INFO.fhirUrls.system}#${LOINC_PROPERTY_CODES.SAB}`,
           description: 'Source abbreviation',
           type: 'string'
         }
@@ -661,7 +657,7 @@ export class TerminologyProcessor {
     return {
       resourceType: 'CodeSystem',
       id: `sct-${namespace}-${versionId}`,
-      url: SNOMED_FHIR_URLS.SYSTEM,
+      url: SNOMED_TERMINOLOGY_INFO.fhirUrls.system,
       version: version,
       name: 'SNOMED_CT',
       title: edition,
@@ -676,31 +672,31 @@ export class TerminologyProcessor {
       property: [
         {
           code: 'effectiveTime',
-          uri: `${SNOMED_FHIR_URLS.SYSTEM}#effectiveTime`,
+          uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#effectiveTime`,
           description: 'The time at which this version of the concept became active',
           type: 'string'
         },
         {
           code: 'moduleId',
-          uri: `${SNOMED_FHIR_URLS.SYSTEM}#moduleId`,
+          uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#moduleId`,
           description: 'The module that contains this concept',
           type: 'code'
         },
         {
           code: 'definitionStatusId',
-          uri: `${SNOMED_FHIR_URLS.SYSTEM}#definitionStatusId`,
+          uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#definitionStatusId`,
           description: 'The definition status of this concept',
           type: 'code'
         },
         {
           code: 'parent',
-          uri: `${SNOMED_FHIR_URLS.SYSTEM}#parent`,
+          uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#parent`,
           description: 'Parent concepts in the SNOMED CT hierarchy',
           type: 'code'
         },
         {
           code: 'child',
-          uri: `${SNOMED_FHIR_URLS.SYSTEM}#child`,
+          uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#child`,
           description: 'Child concepts in the SNOMED CT hierarchy',
           type: 'code'
         }
@@ -712,8 +708,8 @@ export class TerminologyProcessor {
     return {
       resourceType: 'ValueSet',
       id: valueSetId,
-      url: `${SNOMED_FHIR_URLS.SYSTEM.replace('/sct', '/fhir')}/ValueSet/${valueSetId}`,
-      version: `${SNOMED_FHIR_URLS.SYSTEM}/900000000000207008/version/current`,
+      url: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system.replace('/sct', '/fhir')}/ValueSet/${valueSetId}`,
+      version: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}/900000000000207008/version/current`,
       name: valueSetId,
       title: title,
       status: 'active',
@@ -734,8 +730,8 @@ export class TerminologyProcessor {
       compose: {
         include: [
           {
-            system: SNOMED_FHIR_URLS.SYSTEM,
-            version: `${SNOMED_FHIR_URLS.SYSTEM}/900000000000207008/version/current`,
+            system: SNOMED_TERMINOLOGY_INFO.fhirUrls.system,
+            version: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}/900000000000207008/version/current`,
             concept: concepts.map(concept => ({
               code: concept.code,
               display: concept.display,
@@ -751,29 +747,29 @@ export class TerminologyProcessor {
     return {
       resourceType: 'ValueSet',
       id: valueSetId,
-      url: `${LOINC_FHIR_URLS.FHIR_BASE}/ValueSet/${valueSetId}`,
+      url: `${LOINC_TERMINOLOGY_INFO.fhirUrls.fhirBase}/ValueSet/${valueSetId}`,
       version: 'current',
       name: valueSetId,
       title: title,
       status: 'active',
-      publisher: LOINC_ORGANIZATION.NAME,
+      publisher: LOINC_TERMINOLOGY_INFO.publisher.name,
       contact: [
         {
-          name: LOINC_ORGANIZATION.NAME,
+          name: LOINC_TERMINOLOGY_INFO.publisher.name,
           telecom: [
             {
               system: 'url',
-              value: LOINC_ORGANIZATION.WEBSITE
+              value: LOINC_TERMINOLOGY_INFO.publisher.website
             }
           ]
         }
       ],
       description: description,
-      copyright: LOINC_ORGANIZATION.COPYRIGHT,
+      copyright: LOINC_TERMINOLOGY_INFO.publisher.copyright,
       compose: {
         include: [
           {
-            system: LOINC_FHIR_URLS.SYSTEM,
+            system: LOINC_TERMINOLOGY_INFO.fhirUrls.system,
             version: 'current',
             concept: concepts.map(concept => ({
               code: concept.code,
@@ -790,29 +786,29 @@ export class TerminologyProcessor {
     return {
       resourceType: 'ValueSet',
       id: valueSetId,
-      url: `${RXNORM_FHIR_URLS.FHIR_BASE}/ValueSet/${valueSetId}`,
+      url: `${RXNORM_TERMINOLOGY_INFO.fhirUrls.fhirBase}/ValueSet/${valueSetId}`,
       version: 'current',
       name: valueSetId,
       title: title,
       status: 'active',
-      publisher: RXNORM_ORGANIZATION.NAME,
+      publisher: RXNORM_TERMINOLOGY_INFO.publisher.name,
       contact: [
         {
-          name: RXNORM_ORGANIZATION.NAME,
+          name: RXNORM_TERMINOLOGY_INFO.publisher.name,
           telecom: [
             {
               system: 'url',
-              value: RXNORM_ORGANIZATION.WEBSITE
+              value: RXNORM_TERMINOLOGY_INFO.publisher.website
             }
           ]
         }
       ],
       description: description,
-      copyright: RXNORM_ORGANIZATION.COPYRIGHT,
+      copyright: RXNORM_TERMINOLOGY_INFO.publisher.copyright,
       compose: {
         include: [
           {
-            system: RXNORM_FHIR_URLS.SYSTEM,
+            system: RXNORM_TERMINOLOGY_INFO.fhirUrls.system,
             version: 'current',
             concept: concepts.map(concept => ({
               code: concept.code,
@@ -841,7 +837,7 @@ export class TerminologyProcessor {
 
   createSnomedCoding(code: string, display: string, version?: string): Coding {
     return this.createCoding(
-      SNOMED_FHIR_URLS.SYSTEM,
+      SNOMED_TERMINOLOGY_INFO.fhirUrls.system,
       code,
       display,
       version || 'http://snomed.info/sct/version/current'
@@ -850,19 +846,19 @@ export class TerminologyProcessor {
 
   createLoincCoding(code: string, display: string, version?: string): Coding {
     return this.createCoding(
-      LOINC_FHIR_URLS.SYSTEM,
+      LOINC_TERMINOLOGY_INFO.fhirUrls.system,
       code,
       display,
-      version || LOINC_FHIR_URLS.VERSION_CURRENT
+      version || LOINC_TERMINOLOGY_INFO.fhirUrls.versionCurrent
     );
   }
 
   createRxNormCoding(code: string, display: string, version?: string): Coding {
     return this.createCoding(
-      RXNORM_FHIR_URLS.SYSTEM,
+      RXNORM_TERMINOLOGY_INFO.fhirUrls.system,
       code,
       display,
-      version || RXNORM_FHIR_URLS.VERSION_CURRENT
+      version || RXNORM_TERMINOLOGY_INFO.fhirUrls.versionCurrent
     );
   }
 
@@ -870,14 +866,14 @@ export class TerminologyProcessor {
     return {
       resourceType: 'CodeSystem',
       id: 'rxnorm-current',
-      url: RXNORM_FHIR_URLS.SYSTEM,
-      version: RXNORM_FHIR_URLS.VERSION_CURRENT,
+      url: RXNORM_TERMINOLOGY_INFO.fhirUrls.system,
+      version: RXNORM_TERMINOLOGY_INFO.fhirUrls.versionCurrent,
       name: 'RxNorm',
-      title: RXNORM_RESOURCE_INFO.TITLE,
+      title: RXNORM_TERMINOLOGY_INFO.identity.name,
       status: 'active',
       date: new Date().toISOString().split('T')[0] + 'T00:00:00+00:00',
-      publisher: RXNORM_RESOURCE_INFO.PUBLISHER,
-      description: RXNORM_RESOURCE_INFO.DESCRIPTION,
+      publisher: RXNORM_TERMINOLOGY_INFO.publisher.name,
+      description: RXNORM_TERMINOLOGY_INFO.identity.description,
       caseSensitive: true,
       compositional: false,
       versionNeeded: false,
@@ -887,13 +883,13 @@ export class TerminologyProcessor {
       property: [
         {
           code: RXNORM_PROPERTY_CODES.TTY,
-          uri: `${RXNORM_FHIR_URLS.SYSTEM}#${RXNORM_PROPERTY_CODES.TTY}`,
+          uri: `${RXNORM_TERMINOLOGY_INFO.fhirUrls.system}#${RXNORM_PROPERTY_CODES.TTY}`,
           description: 'Term type',
           type: 'string'
         },
         {
           code: RXNORM_PROPERTY_CODES.SAB,
-          uri: `${RXNORM_FHIR_URLS.SYSTEM}#${RXNORM_PROPERTY_CODES.SAB}`,
+          uri: `${RXNORM_TERMINOLOGY_INFO.fhirUrls.system}#${RXNORM_PROPERTY_CODES.SAB}`,
           description: 'Source abbreviation',
           type: 'string'
         }
@@ -1056,7 +1052,7 @@ export class TerminologyProcessor {
       if (dateMatch) {
         const date = dateMatch[1];
         const namespace = this.extractSnomedNamespace(filePath);
-        return `${SNOMED_FHIR_URLS.SYSTEM}/${namespace}/version/${date}`;
+        return `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}/${namespace}/version/${date}`;
       }
       
       const version = this.extractVersionFromRf2Files(filePath);
@@ -1096,7 +1092,7 @@ export class TerminologyProcessor {
           if (versionMatch) {
             const date = versionMatch[1];
             const namespace = this.extractSnomedNamespace(directoryPath);
-            return `${SNOMED_FHIR_URLS.SYSTEM}/${namespace}/version/${date}`;
+            return `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}/${namespace}/version/${date}`;
           }
         }
       }
@@ -1116,14 +1112,14 @@ export class TerminologyProcessor {
         const part = pathParts[i];
         const versionMatch = part.match(/Loinc_(\d+\.\d+)/);
         if (versionMatch) {
-          return `${LOINC_FHIR_URLS.SYSTEM}/version/${versionMatch[1]}`;
+          return `${LOINC_TERMINOLOGY_INFO.fhirUrls.system}/version/${versionMatch[1]}`;
         }
       }
       
-      return LOINC_FHIR_URLS.VERSION_CURRENT;
+      return LOINC_TERMINOLOGY_INFO.fhirUrls.versionCurrent;
     } catch (error) {
       console.warn('Failed to extract LOINC version, using fallback');
-      return LOINC_FHIR_URLS.VERSION_CURRENT;
+      return LOINC_TERMINOLOGY_INFO.fhirUrls.versionCurrent;
     }
   }
 
@@ -1136,14 +1132,14 @@ export class TerminologyProcessor {
         const dateMatch = part.match(/(\d{8})/);
         if (dateMatch) {
           const date = dateMatch[1];
-          return `${RXNORM_FHIR_URLS.SYSTEM}/version/${date}`;
+          return `${RXNORM_TERMINOLOGY_INFO.fhirUrls.system}/version/${date}`;
         }
       }
       
-      return RXNORM_FHIR_URLS.VERSION_CURRENT;
+      return RXNORM_TERMINOLOGY_INFO.fhirUrls.versionCurrent;
     } catch (error) {
       console.warn('Failed to extract RxNorm version, using fallback');
-      return RXNORM_FHIR_URLS.VERSION_CURRENT;
+      return RXNORM_TERMINOLOGY_INFO.fhirUrls.versionCurrent;
     }
   }
 

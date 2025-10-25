@@ -1,8 +1,8 @@
 import { createReadStream } from 'fs';
 import csv from 'csv-parser';
 import { ITerminologyFileReader, TerminologyFileReaderConfig, TerminologyFileInfo, TerminologyReaderResult } from './terminology-file-reader.js';
-import { LOINC_FHIR_URLS, LOINC_PROPERTY_CODES, LOINC_ORGANIZATION, LOINC_RESOURCE_INFO } from '../constants/loinc-constants.js';
-import { RXNORM_FHIR_URLS, RXNORM_PROPERTY_CODES, RXNORM_ORGANIZATION, RXNORM_RESOURCE_INFO, RXNORM_RRF_FIELDS } from '../constants/rxnorm-constants.js';
+import { LOINC_PROPERTY_CODES, LOINC_TERMINOLOGY_INFO } from '../constants/loinc-constants.js';
+import { RXNORM_PROPERTY_CODES, RXNORM_TERMINOLOGY_INFO, RXNORM_RRF_FIELDS } from '../constants/rxnorm-constants.js';
 import { LogPrefixes } from '../constants/log-prefixes.js';
 
 export class CsvTerminologyReader implements ITerminologyFileReader {
@@ -166,14 +166,14 @@ export class CsvTerminologyReader implements ITerminologyFileReader {
     return {
       resourceType: 'CodeSystem',
       id: 'loinc-current',
-      url: LOINC_FHIR_URLS.SYSTEM,
-      version: LOINC_FHIR_URLS.VERSION_CURRENT,
+      url: LOINC_TERMINOLOGY_INFO.fhirUrls.system,
+      version: LOINC_TERMINOLOGY_INFO.fhirUrls.versionCurrent,
       name: 'LOINC',
-      title: LOINC_RESOURCE_INFO.TITLE,
+      title: LOINC_TERMINOLOGY_INFO.identity.name,
       status: 'active',
       date: new Date().toISOString().split('T')[0] + 'T00:00:00+00:00',
-      publisher: LOINC_RESOURCE_INFO.PUBLISHER,
-      description: LOINC_RESOURCE_INFO.DESCRIPTION,
+      publisher: LOINC_TERMINOLOGY_INFO.publisher.name,
+      description: LOINC_TERMINOLOGY_INFO.identity.description,
       caseSensitive: true,
       compositional: false,
       versionNeeded: false,
@@ -183,13 +183,13 @@ export class CsvTerminologyReader implements ITerminologyFileReader {
       property: [
         {
           code: LOINC_PROPERTY_CODES.TTY,
-          uri: `${LOINC_FHIR_URLS.SYSTEM}#${LOINC_PROPERTY_CODES.TTY}`,
+          uri: `${LOINC_TERMINOLOGY_INFO.fhirUrls.system}#${LOINC_PROPERTY_CODES.TTY}`,
           description: 'Term type',
           type: 'string'
         },
         {
           code: LOINC_PROPERTY_CODES.SAB,
-          uri: `${LOINC_FHIR_URLS.SYSTEM}#${LOINC_PROPERTY_CODES.SAB}`,
+          uri: `${LOINC_TERMINOLOGY_INFO.fhirUrls.system}#${LOINC_PROPERTY_CODES.SAB}`,
           description: 'Source abbreviation',
           type: 'string'
         }
@@ -204,14 +204,14 @@ export class CsvTerminologyReader implements ITerminologyFileReader {
     return {
       resourceType: 'CodeSystem',
       id: 'rxnorm-current',
-      url: RXNORM_FHIR_URLS.SYSTEM,
-      version: RXNORM_FHIR_URLS.VERSION_CURRENT,
+      url: RXNORM_TERMINOLOGY_INFO.fhirUrls.system,
+      version: RXNORM_TERMINOLOGY_INFO.fhirUrls.versionCurrent,
       name: 'RxNorm',
-      title: RXNORM_RESOURCE_INFO.TITLE,
+      title: RXNORM_TERMINOLOGY_INFO.identity.name,
       status: 'active',
       date: new Date().toISOString().split('T')[0] + 'T00:00:00+00:00',
-      publisher: RXNORM_RESOURCE_INFO.PUBLISHER,
-      description: RXNORM_RESOURCE_INFO.DESCRIPTION,
+      publisher: RXNORM_TERMINOLOGY_INFO.publisher.name,
+      description: RXNORM_TERMINOLOGY_INFO.identity.description,
       caseSensitive: true,
       compositional: false,
       versionNeeded: false,
@@ -221,13 +221,13 @@ export class CsvTerminologyReader implements ITerminologyFileReader {
       property: [
         {
           code: RXNORM_PROPERTY_CODES.TTY,
-          uri: `${RXNORM_FHIR_URLS.SYSTEM}#${RXNORM_PROPERTY_CODES.TTY}`,
+          uri: `${RXNORM_TERMINOLOGY_INFO.fhirUrls.system}#${RXNORM_PROPERTY_CODES.TTY}`,
           description: 'Term type',
           type: 'string'
         },
         {
           code: RXNORM_PROPERTY_CODES.SAB,
-          uri: `${RXNORM_FHIR_URLS.SYSTEM}#${RXNORM_PROPERTY_CODES.SAB}`,
+          uri: `${RXNORM_TERMINOLOGY_INFO.fhirUrls.system}#${RXNORM_PROPERTY_CODES.SAB}`,
           description: 'Source abbreviation',
           type: 'string'
         }

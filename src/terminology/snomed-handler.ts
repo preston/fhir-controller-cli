@@ -5,6 +5,8 @@ import { BaseTerminologyHandler, TerminologyHandlerConfig } from './base-termino
 import { TerminologyFileInfo } from '../types/terminology-config.js';
 import { SnomedFileReader } from './snomed-file-reader.js';
 import { SnomedMetadataExtractor } from './snomed-metadata-extractor.js';
+import { SNOMED_TERMINOLOGY_INFO } from '../constants/snomed-constants.js';
+import { getTerminologyEntryByCodeSystem } from '../constants/terminology-registry.js';
 import { LogPrefixes } from '../constants/log-prefixes.js';
 
 export class SnomedHandler extends BaseTerminologyHandler {
@@ -35,7 +37,12 @@ export class SnomedHandler extends BaseTerminologyHandler {
     const codeSystem = await this.processor.processSnomedDirectory(directoryPath);
     await this.uploadCodeSystem(codeSystem, fhirUrl);
 
-    console.info(`${LogPrefixes.VALUESET} Skipping ValueSet creation to avoid memory issues with large SNOMED CT datasets`);
+    // Create ValueSet for all codes in the CodeSystem
+    if (codeSystem.concept && codeSystem.concept.length > 0) {
+      const valueSet = this.createValueSet(codeSystem);
+      await this.uploadValueSet(valueSet, fhirUrl);
+      console.info(`${LogPrefixes.VALUESET} Successfully created SNOMED CT ValueSet with ${codeSystem.concept.length} concepts`);
+    }
 
     await this.printResourceSummary(fhirUrl, 'SNOMED CT');
   }
@@ -146,8 +153,56 @@ export class SnomedHandler extends BaseTerminologyHandler {
     return [expectedId];
   }
 
-  createValueSet?(codeSystem: CodeSystem): ValueSet {
-    throw new Error('SNOMED CT ValueSet creation is not supported to avoid memory issues');
+  createValueSet(codeSystem: CodeSystem): ValueSet {
+    const terminologyEntry = getTerminologyEntryByCodeSystem(codeSystem);
+    const valueSetId = `${codeSystem.id}-valueset`;
+    
+    if (!terminologyEntry) {
+      throw new Error('SNOMED CT terminology entry not found in registry');
+    }
+    
+    const { terminologyInfo } = terminologyEntry;
+    
+    const baseValueSet = {
+      resourceType: 'ValueSet' as const,
+      id: valueSetId,
+      url: `${terminologyInfo.fhirUrls.system.replace('/sct', '/fhir')}/ValueSet/${valueSetId}`,
+      version: codeSystem.version,
+      name: valueSetId,
+      title: `${terminologyInfo.identity.displayName} ${terminologyInfo.valueSetMetadata.titleSuffix}`,
+      status: 'active' as const,
+      publisher: terminologyInfo.publisher.name,
+      description: `${terminologyInfo.valueSetMetadata.descriptionPrefix} ${codeSystem.id}`,
+      copyright: terminologyInfo.publisher.copyright,
+      compose: {
+        include: [
+          {
+            system: terminologyInfo.fhirUrls.system,
+            version: codeSystem.version
+          }
+        ]
+      }
+    };
+    
+    // Add contact information for SNOMED CT
+    if (terminologyInfo.contact) {
+      return {
+        ...baseValueSet,
+        contact: [
+          {
+            name: terminologyInfo.contact.name,
+            telecom: [
+              {
+                system: 'url',
+                value: terminologyInfo.contact.url
+              }
+            ]
+          }
+        ]
+      };
+    }
+    
+    return baseValueSet;
   }
 
   /**

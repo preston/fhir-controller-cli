@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { SNOMED_FHIR_URLS } from '../constants/snomed-constants.js';
+import { SNOMED_TERMINOLOGY_INFO } from '../constants/snomed-constants.js';
 
 export class SnomedMetadataExtractor {
   /**
@@ -144,7 +144,7 @@ export class SnomedMetadataExtractor {
           if (versionMatch) {
             const date = versionMatch[1];
             const namespace = this.extractSnomedNamespace(directoryPath);
-            return `${SNOMED_FHIR_URLS.SYSTEM}/${namespace}/version/${date}`;
+            return `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}/${namespace}/version/${date}`;
           }
         }
       }

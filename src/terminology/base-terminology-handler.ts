@@ -4,9 +4,7 @@ import { FhirClient } from '../base/fhir-client.js';
 import { FileHandler } from '../base/file-handler.js';
 import { UploadStrategyFactory } from '../strategies/upload-strategy-factory.js';
 import { TerminologyFileInfo } from '../types/terminology-config.js';
-import { SNOMED_FHIR_URLS, SNOMED_DISPLAY_INFO } from '../constants/snomed-constants.js';
-import { LOINC_FHIR_URLS, LOINC_DISPLAY_INFO } from '../constants/loinc-constants.js';
-import { RXNORM_FHIR_URLS, RXNORM_DISPLAY_INFO } from '../constants/rxnorm-constants.js';
+import { getTerminologyEntry } from '../constants/terminology-registry.js';
 import { LogPrefixes } from '../constants/log-prefixes.js';
 
 export interface TerminologyHandlerConfig {
@@ -83,7 +81,7 @@ export abstract class BaseTerminologyHandler {
 
   protected async printResourceSummary(fhirUrl: string, terminologyType: string): Promise<void> {
     try {
-      const displayName = this.getTerminologyDisplayName(terminologyType);
+      const displayName = getTerminologyEntry(terminologyType)?.terminologyInfo.identity.displayName || terminologyType;
         
       console.info(`\n${LogPrefixes.SUMMARY} Querying ${displayName} resource counts...`);
       
@@ -113,7 +111,7 @@ export abstract class BaseTerminologyHandler {
 
   private async queryTerminologyResources(fhirUrl: string, terminologyType: string): Promise<any[]> {
     try {
-      const systemUrl = this.getTerminologySystemUrl(terminologyType);
+      const systemUrl = getTerminologyEntry(terminologyType)?.terminologyInfo.fhirUrls.system || null;
       
       if (!systemUrl) {
         console.warn(`${LogPrefixes.SUMMARY} Unknown terminology type: ${terminologyType}`);
@@ -132,35 +130,4 @@ export abstract class BaseTerminologyHandler {
     }
   }
 
-  /**
-   * Get the display name for a terminology type
-   */
-  private getTerminologyDisplayName(terminologyType: string): string {
-    switch (terminologyType) {
-      case 'SNOMED CT':
-        return SNOMED_DISPLAY_INFO.NAME;
-      case 'LOINC':
-        return LOINC_DISPLAY_INFO.NAME;
-      case 'RxNorm':
-        return RXNORM_DISPLAY_INFO.NAME;
-      default:
-        return terminologyType;
-    }
-  }
-
-  /**
-   * Get the system URL for a terminology type
-   */
-  private getTerminologySystemUrl(terminologyType: string): string | null {
-    switch (terminologyType) {
-      case 'SNOMED CT':
-        return SNOMED_FHIR_URLS.SYSTEM;
-      case 'LOINC':
-        return LOINC_FHIR_URLS.SYSTEM;
-      case 'RxNorm':
-        return RXNORM_FHIR_URLS.SYSTEM;
-      default:
-        return null;
-    }
-  }
 }

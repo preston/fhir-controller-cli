@@ -1,6 +1,8 @@
 // Author: Preston Lee
 // SNOMED CT Constants and Identifiers
 
+import type { SnomedTerminologyInfo } from '../types/terminology-constants.js';
+
 /**
  * SNOMED CT Concept Identifiers
  * These are standard SNOMED CT concept identifiers used in the terminology system
@@ -38,20 +40,38 @@ export const SNOMED_CONCEPT_IDS = {
   SUBJECT_RELATIONSHIP_DESTINATION_3: '363717005'
 } as const;
 
-/**
- * SNOMED CT FHIR URLs and Systems
- */
-export const SNOMED_FHIR_URLS = {
-  SYSTEM: 'http://snomed.info/sct',
-  DESIGNATION_USE_CONTEXT_EXTENSION: 'http://snomed.info/fhir/StructureDefinition/designation-use-context'
-} as const;
+
 
 /**
- * SNOMED CT Display Information
+ * SNOMED CT ValueSet Information
  */
-export const SNOMED_DISPLAY_INFO = {
-  NAME: 'SNOMED CT',
-  DESCRIPTION: 'Systematized Nomenclature of Medicine Clinical Terms'
+export const SNOMED_TERMINOLOGY_INFO: SnomedTerminologyInfo = {
+  identity: {
+    name: 'SNOMED CT',
+    displayName: 'SNOMED CT',
+    description: 'Systematized Nomenclature of Medicine Clinical Terms',
+    terminologyType: 'SNOMED CT'
+  },
+  publisher: {
+    name: 'SNOMED International',
+    website: 'https://www.snomed.org',
+    licenseUrl: 'https://www.snomed.org/license/',
+    copyright: 'This value set includes content from SNOMED CT, which is copyright © 2002+ International Health Terminology Standards Development Organisation (SNOMED International), and distributed by agreement between SNOMED International and HL7. Implementer use of SNOMED CT is not covered by this agreement.'
+  },
+  fhirUrls: {
+    system: 'http://snomed.info/sct',
+    fhirBase: 'http://snomed.info/fhir',
+    versionCurrent: 'http://snomed.info/sct/900000000000207008/version/current',
+    designationUseContextExtension: 'http://snomed.info/fhir/StructureDefinition/designation-use-context'
+  },
+  valueSetMetadata: {
+    titleSuffix: 'ValueSet - All Codes',
+    descriptionPrefix: 'ValueSet containing all codes from the SNOMED CT CodeSystem'
+  },
+  contact: {
+    name: 'SNOMED International',
+    url: 'https://www.snomed.org'
+  }
 } as const;
 
 /**
@@ -108,43 +128,3 @@ export const SNOMED_PROPERTY_CODES = {
   RELATIONSHIP: 'relationship'
 } as const;
 
-/**
- * TypeScript Enums for Type Safety
- */
-export enum SnomedConceptType {
-  SYNONYM = '900000000000013009',
-  FULLY_SPECIFIED_NAME = '900000000000003001'
-}
-
-export enum SnomedContextType {
-  CONTEXT = '900000000000509007',
-  PREFERRED_ROLE = '900000000000548007'
-}
-
-export enum SnomedRelationshipType {
-  IS_A = '116680003',
-  FINDING_SITE = '363698007',
-  CAUSATIVE_AGENT = '363699004',
-  FINDING_METHOD = '363700003',
-  PROCEDURE_SITE = '363701004',
-  HAS_INTERPRETATION = '363702006',
-  HAS_FOCUS = '363703001',
-  HAS_SPECIMEN = '363704007',
-  SUBJECT_RELATIONSHIP_CONTEXT = '363705008',
-  TEMPORAL_CONTEXT = '363706009',
-  SUBJECT_RELATIONSHIP_TARGET = '363707000',
-  SUBJECT_RELATIONSHIP_SOURCE = '363708005',
-  SUBJECT_RELATIONSHIP_DESTINATION = '363709002'
-}
-
-export enum SnomedPropertyCode {
-  EFFECTIVE_TIME = 'effectiveTime',
-  MODULE_ID = 'moduleId',
-  DEFINITION_STATUS_ID = 'definitionStatusId',
-  PARENT = 'parent',
-  RELATIONSHIP = 'relationship'
-}
-
-export enum SnomedLanguage {
-  ENGLISH = 'en'
-}

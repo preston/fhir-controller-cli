@@ -4,7 +4,7 @@ import { ITerminologyFileReader, TerminologyFileReaderConfig, TerminologyFileInf
 import { SnomedFileReader } from '../terminology/snomed-file-reader.js';
 import { SnomedMetadataExtractor } from '../terminology/snomed-metadata-extractor.js';
 import { SnomedConceptBuilder } from '../terminology/snomed-concept-builder.js';
-import { SNOMED_FHIR_URLS } from '../constants/snomed-constants.js';
+import { SNOMED_TERMINOLOGY_INFO } from '../constants/snomed-constants.js';
 import { LogPrefixes } from '../constants/log-prefixes.js';
 
 export class Rf2FileReader implements ITerminologyFileReader {
@@ -302,7 +302,7 @@ export class Rf2FileReader implements ITerminologyFileReader {
     return {
       resourceType: 'CodeSystem',
       id: `sct-${namespace}-${versionId}`,
-      url: SNOMED_FHIR_URLS.SYSTEM,
+      url: SNOMED_TERMINOLOGY_INFO.fhirUrls.system,
       version: version,
       name: 'SNOMED_CT',
       title: edition,
@@ -317,31 +317,31 @@ export class Rf2FileReader implements ITerminologyFileReader {
       property: [
         {
           code: 'effectiveTime',
-          uri: `${SNOMED_FHIR_URLS.SYSTEM}#effectiveTime`,
+          uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#effectiveTime`,
           description: 'The time at which this version of the concept became active',
           type: 'string'
         },
         {
           code: 'moduleId',
-          uri: `${SNOMED_FHIR_URLS.SYSTEM}#moduleId`,
+          uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#moduleId`,
           description: 'The module that contains this concept',
           type: 'code'
         },
         {
           code: 'definitionStatusId',
-          uri: `${SNOMED_FHIR_URLS.SYSTEM}#definitionStatusId`,
+          uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#definitionStatusId`,
           description: 'The definition status of this concept',
           type: 'code'
         },
         {
           code: 'parent',
-          uri: `${SNOMED_FHIR_URLS.SYSTEM}#parent`,
+          uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#parent`,
           description: 'Parent concepts in the SNOMED CT hierarchy',
           type: 'code'
         },
         {
           code: 'child',
-          uri: `${SNOMED_FHIR_URLS.SYSTEM}#child`,
+          uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#child`,
           description: 'Child concepts in the SNOMED CT hierarchy',
           type: 'code'
         }

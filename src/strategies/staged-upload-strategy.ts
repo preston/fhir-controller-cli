@@ -5,9 +5,8 @@ import path from 'path';
 import axios from 'axios';
 import { UploadStrategy, UploadStrategyConfig } from './upload-strategy.js';
 import { CodeSystemChunker } from '../utilities/codesystem-chunker.js';
-import { SNOMED_FHIR_URLS } from '../constants/snomed-constants.js';
-import { LOINC_FHIR_URLS } from '../constants/loinc-constants.js';
-import { RXNORM_FHIR_URLS } from '../constants/rxnorm-constants.js';
+import { getTerminologyEntryByCodeSystem } from '../constants/terminology-registry.js';
+import { SNOMED_TERMINOLOGY_INFO } from '../constants/snomed-constants.js';
 import { LogPrefixes } from '../constants/log-prefixes.js';
 
 export class StagedUploadStrategy extends UploadStrategy {
@@ -160,14 +159,14 @@ export class StagedUploadStrategy extends UploadStrategy {
         parameter: [
           {
             name: 'system',
-            valueUri: SNOMED_FHIR_URLS.SYSTEM // SNOMED CT system URI
+            valueUri: SNOMED_TERMINOLOGY_INFO.fhirUrls.system // SNOMED CT system URI
           },
           {
             name: 'codeSystem',
             resource: {
               resourceType: 'CodeSystem',
               id: codeSystemId,
-              url: SNOMED_FHIR_URLS.SYSTEM,
+              url: SNOMED_TERMINOLOGY_INFO.fhirUrls.system,
               concept: concepts
             }
           }
@@ -237,6 +236,9 @@ export class StagedUploadStrategy extends UploadStrategy {
       
       console.info(`${LogPrefixes.STAGING} Successfully uploaded CodeSystem ${codeSystemId} with ${chunkFiles.length} concept chunks`);
       
+      // Step 4: Create and upload ValueSet for all codes in the CodeSystem
+      await this.createAndUploadValueSet(baseCodeSystem, fhirUrl);
+      
     } catch (error: any) {
       console.error(`${LogPrefixes.STAGING} Failed to upload staged CodeSystem:`, error?.response?.status);
       
@@ -275,17 +277,86 @@ export class StagedUploadStrategy extends UploadStrategy {
   }
 
   /**
+   * Create and upload ValueSet for all codes in the CodeSystem
+   */
+  public async createAndUploadValueSet(codeSystem: any, fhirUrl: string): Promise<void> {
+    try {
+      const terminologyType = this.identifyTerminologyType(codeSystem);
+      console.info(`${LogPrefixes.VALUESET} Creating ValueSet for ${terminologyType} CodeSystem: ${codeSystem.id}`);
+      
+      const valueSet = this.createValueSetFromCodeSystem(codeSystem);
+      
+      // Upload the ValueSet
+      await this.fhirClient.uploadResource(valueSet, fhirUrl, 'ValueSet');
+      
+      console.info(`${LogPrefixes.VALUESET} Successfully created ValueSet: ${valueSet.id} for CodeSystem: ${codeSystem.id}`);
+      
+    } catch (error: any) {
+      console.error(`${LogPrefixes.VALUESET} Failed to create ValueSet for CodeSystem ${codeSystem.id}:`, error?.response?.status || error.message);
+      // Don't throw error - ValueSet creation is optional
+    }
+  }
+
+  /**
+   * Create ValueSet that includes all codes from the CodeSystem
+   */
+  private createValueSetFromCodeSystem(codeSystem: any): any {
+    const terminologyEntry = getTerminologyEntryByCodeSystem(codeSystem);
+    const valueSetId = `${codeSystem.id}-valueset`;
+    
+    if (!terminologyEntry) {
+      // Fallback for unknown terminology types
+      return {
+        resourceType: 'ValueSet',
+        id: valueSetId,
+        url: `${codeSystem.url.replace('/CodeSystem', '/ValueSet')}/${valueSetId}`,
+        version: codeSystem.version,
+        name: valueSetId,
+        title: `${codeSystem.id} ValueSet - All Codes`,
+        status: 'active',
+        publisher: 'Unknown',
+        description: `ValueSet containing all codes from the CodeSystem ${codeSystem.id}`,
+        copyright: '',
+        compose: {
+          include: [
+            {
+              system: codeSystem.url,
+              version: codeSystem.version
+            }
+          ]
+        }
+      };
+    }
+    
+    const { terminologyInfo } = terminologyEntry;
+    
+    return {
+      resourceType: 'ValueSet',
+      id: valueSetId,
+      url: `${terminologyInfo.fhirUrls.system.replace('/CodeSystem', '/ValueSet')}/${valueSetId}`,
+      version: codeSystem.version,
+      name: valueSetId,
+      title: `${terminologyInfo.identity.displayName} ${terminologyInfo.valueSetMetadata.titleSuffix}`,
+      status: 'active',
+      publisher: terminologyInfo.publisher.name,
+      description: `${terminologyInfo.valueSetMetadata.descriptionPrefix} ${codeSystem.id}`,
+      copyright: terminologyInfo.publisher.copyright,
+      compose: {
+        include: [
+          {
+            system: terminologyInfo.fhirUrls.system,
+            version: codeSystem.version
+          }
+        ]
+      }
+    };
+  }
+
+  /**
    * Identify terminology type from CodeSystem for better logging
    */
   private identifyTerminologyType(codeSystem: any): string {
-    if (codeSystem.id?.startsWith('sct-') || codeSystem.url === SNOMED_FHIR_URLS.SYSTEM) {
-      return 'SNOMED CT';
-    } else if (codeSystem.id?.startsWith('loinc-') || codeSystem.url === LOINC_FHIR_URLS.SYSTEM) {
-      return 'LOINC';
-    } else if (codeSystem.id?.startsWith('rxnorm-') || codeSystem.url === RXNORM_FHIR_URLS.SYSTEM) {
-      return 'RxNorm';
-    } else {
-      return 'Unknown';
-    }
+    const terminologyEntry = getTerminologyEntryByCodeSystem(codeSystem);
+    return terminologyEntry?.terminologyInfo.identity.terminologyType || 'Unknown';
   }
 }
