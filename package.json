@@ -36,8 +36,8 @@
   },
   "homepage": "https://github.com/preston/fhir-controller-cli#README",
   "dependencies": {
-    "axios": "^1.12.2",
-    "commander": "^14.0.1",
+    "axios": "^1.13.0",
+    "commander": "^14.0.2",
     "csv-parser": "^3.2.0",
     "stream-json": "^1.9.1",
     "ts-progress": "^0.1.9"
