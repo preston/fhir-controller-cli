@@ -218,6 +218,58 @@ export class StagedUploadStrategy extends UploadStrategy {
       console.info(`${LogPrefixes.STAGING} Uploading base CodeSystem: ${baseFile}`);
       const baseContent = fs.readFileSync(baseFile, 'utf8');
       const baseCodeSystem = JSON.parse(baseContent);
+      
+      // Add property definitions if not already present
+      if (!baseCodeSystem.property || baseCodeSystem.property.length === 0) {
+        console.info(`${LogPrefixes.STAGING} Adding property definitions to base CodeSystem`);
+        // Import from chunker if needed
+        const { SNOMED_TERMINOLOGY_INFO } = await import('../constants/snomed-constants.js');
+        baseCodeSystem.property = [
+          {
+            code: 'effectiveTime',
+            uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#effectiveTime`,
+            description: 'The time at which this version of the concept became active',
+            type: 'string'
+          },
+          {
+            code: 'active',
+            uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#active`,
+            description: 'Whether this concept is active',
+            type: 'code'
+          },
+          {
+            code: 'moduleId',
+            uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#moduleId`,
+            description: 'The module that contains this concept',
+            type: 'code'
+          },
+          {
+            code: 'definitionStatusId',
+            uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#definitionStatusId`,
+            description: 'The definition status of this concept (primitive or sufficiently defined)',
+            type: 'code'
+          },
+          {
+            code: 'parent',
+            uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#parent`,
+            description: 'Parent concepts in the SNOMED CT hierarchy (IS-A relationships)',
+            type: 'code'
+          },
+          {
+            code: 'child',
+            uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#child`,
+            description: 'Child concepts in the SNOMED CT hierarchy (inverse IS-A relationships)',
+            type: 'code'
+          },
+          {
+            code: 'relationship',
+            uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#relationship`,
+            description: 'Relationships to other concepts',
+            type: 'code'
+          }
+        ];
+      }
+      
       await this.fhirClient.uploadResource(baseCodeSystem, fhirUrl, 'CodeSystem');
       console.info(`${LogPrefixes.STAGING} Successfully uploaded base CodeSystem ${codeSystemId}`);
       

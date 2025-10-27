@@ -80,13 +80,20 @@ export class SnomedHandler extends BaseTerminologyHandler {
     
     // Create CodeSystem header manually to avoid JSON formatting issues
     const codeSystemId = `sct-${namespace}-${version.split('/').pop() || 'current'}`;
+    const edition = SnomedMetadataExtractor.getSnomedEditionFromNamespace(namespace);
     const header = `{
   "resourceType": "CodeSystem",
   "id": "${codeSystemId}",
   "url": "http://snomed.info/sct",
   "version": "${version}",
   "name": "SNOMED_CT",
+  "title": "${edition}",
   "status": "active",
+  "hierarchyMeaning": "is-a",
+  "compositional": true,
+  "content": "complete",
+  "publisher": "SNOMED International",
+  "copyright": "This CodeSystem includes content from SNOMED CT, which is copyright © 2002+ International Health Terminology Standards Development Organisation (SNOMED International).",
   "concept": [`;
 
     // Write header and start concept array
@@ -100,8 +107,8 @@ export class SnomedHandler extends BaseTerminologyHandler {
     // Process concepts in streaming fashion
     await this.snomedFileReader.processSnomedConceptsStreaming(terminologyPath, writeStream, descriptions, relationships);
 
-    // Close the concept array and CodeSystem
-    writeStream.write('\n  ]\n}');
+    // Close the concept array
+    writeStream.write('\n  ]');
     writeStream.end();
 
     // Wait for the stream to finish writing
@@ -109,7 +116,151 @@ export class SnomedHandler extends BaseTerminologyHandler {
       writeStream.on('finish', () => resolve());
     });
 
+    // Add property definitions to the CodeSystem
+    await this.addPropertyDefinitionsToCodeSystem(stagedFilePath);
+
+    // Add child relationships to concepts
+    await this.addChildRelationshipsToConcepts(stagedFilePath);
+
     return stagedFilePath;
+  }
+
+  /**
+   * Get SNOMED CT property definitions for the CodeSystem
+   */
+  private getSnomedPropertyDefinitions(): any[] {
+    return [
+      {
+        code: "effectiveTime",
+        uri: "http://snomed.info/sct#effectiveTime",
+        description: "The time at which this version of the concept became active",
+        type: "string"
+      },
+      {
+        code: "active",
+        uri: "http://snomed.info/sct#active",
+        description: "Whether this concept is active",
+        type: "code"
+      },
+      {
+        code: "moduleId",
+        uri: "http://snomed.info/sct#moduleId",
+        description: "The module that contains this concept",
+        type: "code"
+      },
+      {
+        code: "definitionStatusId",
+        uri: "http://snomed.info/sct#definitionStatusId",
+        description: "The definition status of this concept (primitive or sufficiently defined)",
+        type: "code"
+      },
+      {
+        code: "parent",
+        uri: "http://snomed.info/sct#parent",
+        description: "Parent concepts in the SNOMED CT hierarchy (IS-A relationships)",
+        type: "code"
+      },
+      {
+        code: "child",
+        uri: "http://snomed.info/sct#child",
+        description: "Child concepts in the SNOMED CT hierarchy (inverse IS-A relationships)",
+        type: "code"
+      },
+      {
+        code: "relationship",
+        uri: "http://snomed.info/sct#relationship",
+        description: "Relationships to other concepts",
+        type: "code"
+      }
+    ];
+  }
+
+  /**
+   * Add property definitions to the CodeSystem after concepts have been written
+   */
+  private async addPropertyDefinitionsToCodeSystem(stagedFilePath: string): Promise<void> {
+    try {
+      // Read and parse the file
+      const fileContent = await fs.promises.readFile(stagedFilePath, 'utf8');
+      const codeSystem = JSON.parse(fileContent);
+      
+      // Add property definitions
+      codeSystem.property = this.getSnomedPropertyDefinitions();
+      
+      // Write back with property definitions
+      await fs.promises.writeFile(stagedFilePath, JSON.stringify(codeSystem, null, 2));
+    } catch (error: any) {
+      console.error(`${LogPrefixes.STAGE_2_SPLIT} Error adding property definitions: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Add child relationship properties to concepts after processing is complete
+   */
+  private async addChildRelationshipsToConcepts(stagedFilePath: string): Promise<void> {
+    try {
+      // Read and parse the CodeSystem
+      const fileContent = await fs.promises.readFile(stagedFilePath, 'utf8');
+      const codeSystem = JSON.parse(fileContent);
+      
+      if (!codeSystem.concept || codeSystem.concept.length === 0) {
+        console.warn(`${LogPrefixes.STAGE_2_SPLIT} No concepts found to add child relationships`);
+        return;
+      }
+
+      // Build a map of concept -> children
+      const childMap = new Map<string, string[]>();
+      
+      // First pass: collect all parent relationships
+      codeSystem.concept.forEach((concept: any) => {
+        const parentProperties = concept.property?.filter((prop: any) => prop.code === 'parent') || [];
+        parentProperties.forEach((prop: any) => {
+          const parentId = prop.valueCode;
+          if (parentId) {
+            if (!childMap.has(parentId)) {
+              childMap.set(parentId, []);
+            }
+            childMap.get(parentId)!.push(concept.code);
+          }
+        });
+      });
+
+      // Second pass: add child properties to each concept
+      let conceptsUpdated = 0;
+      codeSystem.concept.forEach((concept: any) => {
+        const children = childMap.get(concept.code) || [];
+        if (children.length > 0) {
+          // Add child properties
+          children.forEach((childId: string) => {
+            if (!concept.property) {
+              concept.property = [];
+            }
+            // Check if child property already exists
+            const hasChildProperty = concept.property.some((prop: any) => 
+              prop.code === 'child' && prop.valueCode === childId
+            );
+            if (!hasChildProperty) {
+              concept.property.push({
+                code: 'child',
+                valueCode: childId
+              });
+              conceptsUpdated++;
+            }
+          });
+        }
+      });
+
+      if (this.config.verbose && conceptsUpdated > 0) {
+        console.info(`${LogPrefixes.STAGE_2_SPLIT} Added child relationships to ${conceptsUpdated} concept properties`);
+      }
+
+      // Write the updated CodeSystem back
+      await fs.promises.writeFile(stagedFilePath, JSON.stringify(codeSystem, null, 2));
+    } catch (error: any) {
+      console.error(`${LogPrefixes.STAGE_2_SPLIT} Error adding child relationships: ${error.message}`);
+      throw error;
+    }
   }
 
 

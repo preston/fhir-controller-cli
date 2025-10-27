@@ -198,6 +198,10 @@ export class SnomedFileReader {
         if (this.config.verbose) {
           console.info(`${LogPrefixes.STAGE_1_PREPROCESS} Loaded ${processedCount} relationships for ${relationships.size} concepts`);
         }
+        if (processedCount === 0) {
+          console.warn(`${LogPrefixes.STAGE_1_PREPROCESS} WARNING: No relationships were loaded from ${relationshipFile}`);
+          console.warn(`${LogPrefixes.STAGE_1_PREPROCESS} The SNOMED CodeSystem may be missing hierarchical and associative relationship data.`);
+        }
         resolve(relationships);
       });
 
@@ -318,6 +322,12 @@ export class SnomedFileReader {
     // Include all concepts regardless of active status
     const conceptDescriptions = descriptions.get(id) || [];
     const conceptRelationships = relationships.get(id) || [];
+    
+    // Debug logging for relationship processing
+    if (conceptRelationships.length > 0 && this.config.verbose && Math.random() < 0.001) {
+      // Log 0.1% of concepts with relationships for debugging
+      console.log(`${LogPrefixes.STAGE_1_PREPROCESS} Concept ${id} has ${conceptRelationships.length} relationships`);
+    }
     
     // Find the best display text
     const fullySpecifiedName = conceptDescriptions.find(desc => 
