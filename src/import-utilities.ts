@@ -25,6 +25,9 @@ export class ImportUtilities {
 	private dryRun: boolean = false;
 	private verbose: boolean = false;
 	private isCancelled: boolean = false;
+	/** After POSTing an import AuditEvent, search may lag; direct GET this URL until search finds matches. */
+	private lastImportAuditEventDirectReadUrl: string | null = null;
+	private loggedSearchLagHint: boolean = false;
 
 	constructor(dryRun: boolean = false, debug: boolean = false) {
 		this.dryRun = dryRun;
@@ -49,6 +52,41 @@ export class ImportUtilities {
 		const url = new URL('AuditEvent', `${base}/`);
 		url.searchParams.set('type', `${auditEventSystem}|${auditEventCode}`);
 		return url.href;
+	}
+
+	private normalizeFhirBaseUrl(fhirBaseUrl: string): string {
+		return fhirBaseUrl.replace(/\/*$/, '');
+	}
+
+	private rememberPostedImportAuditEventUrl(fhirBaseUrl: string, response: { headers?: any; data?: AuditEvent }): void {
+		const base = this.normalizeFhirBaseUrl(fhirBaseUrl);
+		const rawLoc = response.headers?.location;
+		const loc = Array.isArray(rawLoc) ? rawLoc[0] : rawLoc;
+		if (typeof loc === 'string' && loc.length > 0) {
+			try {
+				this.lastImportAuditEventDirectReadUrl = new URL(loc, `${base}/`).href;
+				return;
+			} catch {
+				// fall through to id-based URL
+			}
+		}
+		const id = response.data?.id;
+		if (typeof id === 'string' && id.length > 0) {
+			this.lastImportAuditEventDirectReadUrl = `${base}/AuditEvent/${id}`;
+		}
+	}
+
+	/** True if the AuditEvent still exists at the URL we got from the last successful POST (bypasses search index lag). */
+	private async importAuditEventDirectReadOk(readUrl: string): Promise<boolean> {
+		try {
+			const r = await axios.get(readUrl, {
+				headers: { Accept: 'application/fhir+json', 'Cache-Control': 'no-cache' },
+				validateStatus: () => true,
+			});
+			return r.status === 200 && r.data?.resourceType === 'AuditEvent';
+		} catch {
+			return false;
+		}
 	}
 
 	private isRemoteHttpManifest(ref: string): boolean {
@@ -179,15 +217,41 @@ export class ImportUtilities {
 				if (this.verbose) {
 					console.debug(`AuditEvent poll GET ${url}`);
 				}
-				const response = await axios.get<Bundle>(url);
+				const response = await axios.get<Bundle>(url, {
+					headers: { Accept: 'application/fhir+json', 'Cache-Control': 'no-cache' },
+				});
 				const bundle = response.data;
 				const now = new Date().toISOString();
-				if (this.auditEventSearchHasMatches(bundle)) {
-					const n =
-						typeof bundle.total === 'number' && bundle.total > 0
-							? bundle.total
-							: bundle.entry?.length ?? 0;
-					console.info(`${now}: Found matching AuditEvent resources (count ${n}). No import needed.`);
+				let searchHas = this.auditEventSearchHasMatches(bundle);
+				let directHas = false;
+				if (!searchHas && this.lastImportAuditEventDirectReadUrl) {
+					directHas = await this.importAuditEventDirectReadOk(this.lastImportAuditEventDirectReadUrl);
+					if (!directHas) {
+						this.lastImportAuditEventDirectReadUrl = null;
+					}
+				}
+				const hasMarker = searchHas || directHas;
+				if (hasMarker) {
+					if (searchHas) {
+						this.loggedSearchLagHint = false;
+						this.lastImportAuditEventDirectReadUrl = null;
+						const n =
+							typeof bundle.total === 'number' && bundle.total > 0
+								? bundle.total
+								: bundle.entry?.length ?? 0;
+						console.info(`${now}: Found matching AuditEvent resources (count ${n}). No import needed.`);
+					} else {
+						if (this.verbose) {
+							console.debug(
+								`${now}: Type search has not indexed the import AuditEvent yet; direct read confirms it exists. No import needed.`
+							);
+						} else if (!this.loggedSearchLagHint) {
+							console.info(
+								`${now}: Import AuditEvent is not visible in type search yet (index lag); confirmed by direct read. Skipping duplicate import until search catches up.`
+							);
+							this.loggedSearchLagHint = true;
+						}
+					}
 				} else {
 					console.info(`${now}: No matching AuditEvent resources. Triggering import.`);
 					await this.triggerImport(stackJsonUrl, fhirBaseUrl, auditEventSystem, auditEventCode, scenarioId);
@@ -350,7 +414,7 @@ export class ImportUtilities {
 			console.log(`[DRY RUN] Would POST AuditEvent to ${fhirBaseUrl}/AuditEvent`);
 			return ae;
 		}
-		const postUrl = `${fhirBaseUrl.replace(/\/*$/, '')}/AuditEvent`;
+		const postUrl = `${this.normalizeFhirBaseUrl(fhirBaseUrl)}/AuditEvent`;
 		try {
 			const response = await axios.post<AuditEvent>(postUrl, ae, {
 				headers: {
@@ -359,6 +423,7 @@ export class ImportUtilities {
 				},
 			});
 			const id = response.data?.id;
+			this.rememberPostedImportAuditEventUrl(fhirBaseUrl, response);
 			console.info(
 				`[SUCCESS] Posted import AuditEvent to ${postUrl}${id != null ? ` (id: ${id})` : ''}: ${response.status} ${response.statusText}`
 			);
