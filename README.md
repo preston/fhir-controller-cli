@@ -27,9 +27,12 @@ npx fhir-controller-cli help
 # Get high-level subcommand help
 docker run --rm p3000/fhir-controller-cli:latest help
 
-# Example of headless polling and auto-loading by reference to a FHIR Controller stack.json file
+# Example of headless polling and auto-loading by reference to a FHIR Controller stack.json file (HTTP URL)
 # Data loading will be triggered whenever the server confirms the absence of a special AuditEvent import record
 docker run --rm --pull always p3000/fhir-controller-cli:latest poll-auditevent-and-trigger-import http://fhir.example.com/fhir https://stack.foundry.hl7.org/stack.json -i 5
+
+# Local manifest on the host: bind-mount the directory that contains stack.json and referenced data files, then pass the in-container path
+docker run --rm --pull always -v /path/to/stack-dir:/manifest p3000/fhir-controller-cli:latest poll-auditevent-and-trigger-import http://fhir.example.com/fhir /manifest/stack.json
 
 # Example of uploading terminology systems
 docker run --rm --pull always p3000/fhir-controller-cli:latest terminology import /data/loinc.csv http://fhir.example.com/fhir /tmp/staging --system loinc
@@ -58,18 +61,35 @@ fhir-controller synthea-upload /path/to/synthea/output/ http://localhost:8080/fh
 
 ## Polling and Auto-Import
 
-Monitor a FHIR server for AuditEvents and automatically trigger imports:
+Monitor a FHIR server for AuditEvents and automatically trigger imports when the server has no matching import AuditEvent yet.
+
+The second argument is the **stack manifest** (`stack.json`): an HTTP(S) URL, a `file://` URL, or a filesystem path. Relative paths are resolved from the current working directory; a leading `~/` expands to your home directory (same as other commands). Data files listed in the manifest are loaded from the same base as the manifest (URL resolution for remote manifests, directory-relative paths for local manifests).
 
 ```sh
-# Poll for AuditEvents and trigger imports
+# Poll and import using a remote manifest URL
 fhir-controller poll-auditevent-and-trigger-import http://fhir.example.com/fhir https://stack.foundry.hl7.org/stack.json
 
-# With custom polling interval (in seconds)
-fhir-controller poll-auditevent-and-trigger-import http://fhir.example.com/fhir https://stack.foundry.hl7.org/stack.json --interval 300
+# Local manifest (and local bundle paths next to it)
+fhir-controller poll-auditevent-and-trigger-import http://fhir.example.com/fhir ./config/stack.json
 
-# With verbose logging
-fhir-controller poll-auditevent-and-trigger-import http://fhir.example.com/fhir https://stack.foundry.hl7.org/stack.json --verbose
+# Only import rows tagged for a given scenario (manifest `scenarios[].id`; rows may list that id under `scenarios`)
+fhir-controller poll-auditevent-and-trigger-import http://fhir.example.com/fhir https://stack.foundry.hl7.org/stack.json --scenario partial
+
+# Custom polling interval (seconds), verbose logging, dry run (no POST to FHIR)
+fhir-controller poll-auditevent-and-trigger-import http://fhir.example.com/fhir https://stack.foundry.hl7.org/stack.json --interval 300 --verbose --dry-run
+
+# One shot: poll once, import if the server has no matching AuditEvent, then exit (no repeat interval)
+fhir-controller poll-auditevent-and-trigger-import http://fhir.example.com/fhir ./config/stack.json --exit --dry-run
 ```
+
+### Polling command options
+
+- `--exit`: run a single poll cycle (and manifest import if triggered) then exit; `--interval` is ignored after that one cycle
+- `--scenario <scenario_id>`: restrict imports to manifest `data` rows for that scenario; rows with no `scenarios` array (or an empty one) still load for every scenario
+- `-i, --interval <seconds>`: minimum time between polls (default 3600)
+- `-v, --verbose`: extra debug output
+- `-d, --dry-run`: log actions without uploading to the FHIR server
+- `--audit-event-system` / `--audit-event-code`: match and create the import AuditEvent type (defaults match the examples above)
 
 ## Terminology Imports
 

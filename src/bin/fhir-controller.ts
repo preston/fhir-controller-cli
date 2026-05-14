@@ -6,7 +6,6 @@ import os from 'os';
 import { fileURLToPath } from 'url';
 
 import { program } from 'commander';
-import axios from 'axios';
 
 import { SyntheaUtilities } from '../synthea-utilities.js';
 import { ImportUtilities } from '../import-utilities.js';
@@ -32,38 +31,66 @@ cli
 	.command('poll-auditevent-and-trigger-import')
 	.description('Polls the FHIR server for resources matching the query at the specified interval.')
 	.argument('<fhir_base_url>', 'URL of the FHIR server to poll')
-	.argument('<manifest_json_url>', 'FHIR controller data manifest (stack.json) configuration file')
+	.argument(
+		'<manifest_ref>',
+		'FHIR Controller stack manifest: HTTP(S) URL, file:// URL, or filesystem path to stack.json'
+	)
 	.option('--audit-event-system <audit_event_system>', 'System code for data import audit events', 'http://dicom.nema.org/resources/ontology/DCM')
 	.option('--audit-event-code <audit_event_code>', 'Code for data import audit events', '110107')
 	.option('-i, --interval <interval>', 'Minimum delay interval between polls to the FHIR server in seconds', '3600')
 	.option('-v, --verbose', 'Enable verbose debugging mode')
 	.option('-d, --dry-run', 'Perform a dry run without uploading any resources')
-	.action((fhirBaseUrl, stackJsonUrl, options) => {
+	.option(
+		'--scenario <scenario_id>',
+		'Only import manifest data rows for this scenario id (see manifest scenarios[].id)'
+	)
+	.option('--exit', 'Run one AuditEvent poll (and import if needed) then exit; do not repeat on an interval')
+	.action(async (fhirBaseUrl, manifestRef, options) => {
 		const auditEventSystem = options.auditEventSystem;
 		const auditEventCode = options.auditEventCode;
 		const pollInterval = options.interval;
+		const scenarioId = options.scenario as string | undefined;
+		const exitAfterFirstCycle = Boolean(options.exit);
 		verbose = options.verbose;
 		dryRun = options.dryRun;
-		console.info(`Downloading stack.json file from: ${stackJsonUrl}`);
-		axios.get(stackJsonUrl).then(response => {
-			const stack = response.data;
-			if (response.status !== 200) {
-				console.error(`Error fetching stack.json file. Exiting.`);
-				return 1;
-			} else {
-				if (verbose) {
-					console.debug(stack);
-				}
-				console.info(`Starting polling ${fhirBaseUrl} AuditEvents at ${pollInterval} interval.`);
-				importUtils = new ImportUtilities(dryRun, verbose);
-				const pollingPromise = importUtils.pollAndImportIndefinitely(stackJsonUrl, fhirBaseUrl, auditEventSystem, auditEventCode, pollInterval);
-				activeOperations.add(pollingPromise);
-				pollingPromise.finally(() => activeOperations.delete(pollingPromise));
-			}
-		}).catch(error => {
-			console.error(`Error fetching data manifest file. Please check the URL and try again. This is fatal.`);
-			return 1;
-		});
+		console.info(`Loading manifest from: ${manifestRef}`);
+		importUtils = new ImportUtilities(dryRun, verbose);
+		let stack: any;
+		try {
+			stack = await importUtils.loadManifest(manifestRef);
+		} catch (error: any) {
+			console.error('Could not load manifest (missing file, invalid JSON, or HTTP error). This is fatal.');
+			console.error(error?.message ?? String(error));
+			process.exit(1);
+		}
+		try {
+			importUtils.ensureScenarioValid(stack, scenarioId);
+		} catch (error: any) {
+			console.error(error?.message ?? error);
+			process.exit(1);
+		}
+		if (verbose) {
+			console.debug(stack);
+		}
+		if (exitAfterFirstCycle) {
+			console.info(`Single poll cycle (--exit) against ${fhirBaseUrl} AuditEvents.`);
+		} else {
+			console.info(`Starting polling ${fhirBaseUrl} AuditEvents at ${pollInterval} interval.`);
+		}
+		const pollingPromise = importUtils.pollAndImportIndefinitely(
+			manifestRef,
+			fhirBaseUrl,
+			auditEventSystem,
+			auditEventCode,
+			pollInterval,
+			scenarioId,
+			exitAfterFirstCycle
+		);
+		activeOperations.add(pollingPromise);
+		pollingPromise.finally(() => activeOperations.delete(pollingPromise));
+		if (exitAfterFirstCycle) {
+			await pollingPromise;
+		}
 	});
 
 

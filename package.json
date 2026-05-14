@@ -1,6 +1,6 @@
 {
   "name": "fhir-controller-cli",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "FHIR Controller CLI utilities.",
   "type": "module",
   "main": "index.js",
