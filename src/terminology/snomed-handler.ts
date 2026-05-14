@@ -1,12 +1,11 @@
 import fs from 'fs';
 import path from 'path';
-import type { CodeSystem, ValueSet } from 'fhir/r4';
+import type { CodeSystem } from 'fhir/r4';
 import { BaseTerminologyHandler, TerminologyHandlerConfig } from './base-terminology-handler.js';
 import { TerminologyFileInfo } from '../types/terminology-config.js';
 import { SnomedFileReader } from './snomed-file-reader.js';
 import { SnomedMetadataExtractor } from './snomed-metadata-extractor.js';
 import { SNOMED_TERMINOLOGY_INFO } from '../constants/snomed-constants.js';
-import { getTerminologyEntryByCodeSystem } from '../constants/terminology-registry.js';
 import { LogPrefixes } from '../constants/log-prefixes.js';
 
 export class SnomedHandler extends BaseTerminologyHandler {
@@ -25,8 +24,9 @@ export class SnomedHandler extends BaseTerminologyHandler {
     // Get expected IDs for potential deletion
     const expectedIds = this.getExpectedIdsForDirectory(directoryPath);
     
-    // Delete existing CodeSystems if replace option is enabled
+    // Delete existing CodeSystems and ValueSets if replace option is enabled
     await this.deleteExistingCodeSystems(fhirUrl, expectedIds);
+    await this.deleteExistingValueSets(fhirUrl, expectedIds);
 
     const exists = await this.checkExists(fhirUrl, directoryPath);
     if (exists && !this.config.replace) {
@@ -35,12 +35,12 @@ export class SnomedHandler extends BaseTerminologyHandler {
     }
 
     const codeSystem = await this.processor.processSnomedDirectory(directoryPath);
-    await this.uploadCodeSystem(codeSystem, fhirUrl);
+    const strategy = await this.uploadCodeSystem(codeSystem, fhirUrl);
 
-    // Create ValueSet for all codes in the CodeSystem
-    if (codeSystem.concept && codeSystem.concept.length > 0) {
-      const valueSet = this.createValueSet(codeSystem);
-      await this.uploadValueSet(valueSet, fhirUrl);
+    // Create ValueSet for all codes in the CodeSystem using the upload strategy
+    // This ensures ValueSet creation happens after all chunks are uploaded
+    if (codeSystem.concept && codeSystem.concept.length > 0 && strategy.createAndUploadValueSet) {
+      await strategy.createAndUploadValueSet(codeSystem, fhirUrl);
       console.info(`${LogPrefixes.VALUESET} Successfully created SNOMED CT ValueSet with ${codeSystem.concept.length} concepts`);
     }
 
@@ -76,10 +76,10 @@ export class SnomedHandler extends BaseTerminologyHandler {
     console.info(`${LogPrefixes.STAGE_2_SPLIT} Using SNOMED CT namespace: ${namespace}`);
 
     // Create staged file with streaming approach
-    const stagedFilePath = path.join(stagingDir, `sct-${namespace}-${version.split('/').pop() || 'current'}.json`);
+    const stagedFilePath = path.join(stagingDir, `sct-${namespace}-${version || 'current'}.json`);
     
     // Create CodeSystem header manually to avoid JSON formatting issues
-    const codeSystemId = `sct-${namespace}-${version.split('/').pop() || 'current'}`;
+    const codeSystemId = `sct-${namespace}-${version || 'current'}`;
     const edition = SnomedMetadataExtractor.getSnomedEditionFromNamespace(namespace);
     const header = `{
   "resourceType": "CodeSystem",
@@ -91,7 +91,7 @@ export class SnomedHandler extends BaseTerminologyHandler {
   "status": "active",
   "hierarchyMeaning": "is-a",
   "compositional": true,
-  "content": "complete",
+  "content": "fragment",
   "publisher": "SNOMED International",
   "copyright": "This CodeSystem includes content from SNOMED CT, which is copyright © 2002+ International Health Terminology Standards Development Organisation (SNOMED International).",
   "concept": [`;
@@ -270,7 +270,7 @@ export class SnomedHandler extends BaseTerminologyHandler {
     if (directoryPath) {
       const version = SnomedMetadataExtractor.extractSnomedVersion(directoryPath);
       const namespace = SnomedMetadataExtractor.extractSnomedNamespace(directoryPath);
-      const versionId = version.split('/').pop() || 'current';
+      const versionId = version || 'current';
       const expectedId = `sct-${namespace}-${versionId}`;
       
       if (await this.fhirClient.checkResourceExists(fhirUrl, 'CodeSystem', expectedId)) {
@@ -298,62 +298,10 @@ export class SnomedHandler extends BaseTerminologyHandler {
   getExpectedIdsForDirectory(directoryPath: string): string[] {
     const version = this.processor.extractSnomedVersion(directoryPath);
     const namespace = this.processor.extractSnomedNamespace(directoryPath);
-    const versionId = version.split('/').pop() || 'current';
+    const versionId = version || 'current';
     const expectedId = `sct-${namespace}-${versionId}`;
     
     return [expectedId];
-  }
-
-  createValueSet(codeSystem: CodeSystem): ValueSet {
-    const terminologyEntry = getTerminologyEntryByCodeSystem(codeSystem);
-    const valueSetId = `${codeSystem.id}-valueset`;
-    
-    if (!terminologyEntry) {
-      throw new Error('SNOMED CT terminology entry not found in registry');
-    }
-    
-    const { terminologyInfo } = terminologyEntry;
-    
-    const baseValueSet = {
-      resourceType: 'ValueSet' as const,
-      id: valueSetId,
-      url: `${terminologyInfo.fhirUrls.system.replace('/sct', '/fhir')}/ValueSet/${valueSetId}`,
-      version: codeSystem.version,
-      name: valueSetId,
-      title: `${terminologyInfo.identity.displayName} ${terminologyInfo.valueSetMetadata.titleSuffix}`,
-      status: 'active' as const,
-      publisher: terminologyInfo.publisher.name,
-      description: `${terminologyInfo.valueSetMetadata.descriptionPrefix} ${codeSystem.id}`,
-      copyright: terminologyInfo.publisher.copyright,
-      compose: {
-        include: [
-          {
-            system: terminologyInfo.fhirUrls.system,
-            version: codeSystem.version
-          }
-        ]
-      }
-    };
-    
-    // Add contact information for SNOMED CT
-    if (terminologyInfo.contact) {
-      return {
-        ...baseValueSet,
-        contact: [
-          {
-            name: terminologyInfo.contact.name,
-            telecom: [
-              {
-                system: 'url',
-                value: terminologyInfo.contact.url
-              }
-            ]
-          }
-        ]
-      };
-    }
-    
-    return baseValueSet;
   }
 
   /**

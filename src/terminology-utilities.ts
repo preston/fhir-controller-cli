@@ -93,14 +93,74 @@ export class TerminologyUtilities {
       
       // For SNOMED, create the CodeSystem JSON file in Stage 1
       await this.preprocessSnomedDirectory(filePath, stagingDir);
-    } else {
-      if (!this.fileHandler.validateFile(filePath)) {
-        throw new Error(`File validation failed: ${filePath}`);
+    } else if (terminologyType === 'loinc') {
+      // Check if it's a directory first
+      const stats = fs.statSync(filePath);
+      if (stats.isDirectory()) {
+        const validation = this.fileHandler.validateLoincDirectory(filePath);
+        if (!validation.valid) {
+          throw new Error(`LOINC directory validation failed: ${filePath}`);
+        }
+        // Use the found CSV file path
+        filePath = validation.csvFile!;
+      } else {
+        if (!this.fileHandler.validateFile(filePath)) {
+          throw new Error(`File validation failed: ${filePath}`);
+        }
       }
       
-      // For other terminology types, just validate the file
+      // For LOINC, we'll stage the files in Stage 1 to create CodeSystem JSON
+      const handler = TerminologyHandlerFactory.createHandler(terminologyType, {
+        dryRun: this.dryRun,
+        verbose: this.verbose,
+        tempDir: this.tempDir,
+        keepTemp: this.keepTemp,
+        replace: this.replace,
+        batchSize: this.batchSize
+      });
+      
+      // Create staging directory
+      const stagingDir = `${this.tempDir}/fhir-staging-${Date.now()}`;
+      this.fileHandler.ensureDirectoryExists(stagingDir);
+      console.info(`${LogPrefixes.STAGE_1_PREPROCESS} Using staging directory: ${stagingDir}`);
+      
+      // Create file info and stage the terminology
       const fileInfo = this.fileHandler.analyzeFile(filePath, terminologyType);
-      console.info(`${LogPrefixes.STAGE_1_PREPROCESS} File analysis complete: ${fileInfo.fileSize?.toFixed(2) || 'unknown'} MB, ${fileInfo.estimatedConcepts || 'unknown'} estimated concepts`);
+      await handler.processAndStage(fileInfo, stagingDir);
+    } else {
+      // RxNorm - check if it's a directory first
+      const stats = fs.statSync(filePath);
+      if (stats.isDirectory()) {
+        const validation = this.fileHandler.validateRxnormDirectory(filePath);
+        if (!validation.valid) {
+          throw new Error(`RxNorm directory validation failed: ${filePath}`);
+        }
+        // Use the found RRF file path
+        filePath = validation.rrfFile!;
+      } else {
+        if (!this.fileHandler.validateFile(filePath)) {
+          throw new Error(`File validation failed: ${filePath}`);
+        }
+      }
+      
+      // For RxNorm, we'll stage the files in Stage 1 to create CodeSystem JSON
+      const handler = TerminologyHandlerFactory.createHandler(terminologyType, {
+        dryRun: this.dryRun,
+        verbose: this.verbose,
+        tempDir: this.tempDir,
+        keepTemp: this.keepTemp,
+        replace: this.replace,
+        batchSize: this.batchSize
+      });
+      
+      // Create staging directory
+      const stagingDir = `${this.tempDir}/fhir-staging-${Date.now()}`;
+      this.fileHandler.ensureDirectoryExists(stagingDir);
+      console.info(`${LogPrefixes.STAGE_1_PREPROCESS} Using staging directory: ${stagingDir}`);
+      
+      // Create file info and stage the terminology
+      const fileInfo = this.fileHandler.analyzeFile(filePath, terminologyType);
+      await handler.processAndStage(fileInfo, stagingDir);
     }
     
     console.info(`${LogPrefixes.STAGE_1_PREPROCESS} ${terminologyType.toUpperCase()} preprocessing completed successfully`);
@@ -165,6 +225,33 @@ export class TerminologyUtilities {
       console.info(`${LogPrefixes.STAGE_2_SPLIT} Created ${splitResult.chunkFiles.length} concept chunks from ${jsonFilePath}`);
       console.info(`${LogPrefixes.STAGE_2_SPLIT} Base file: ${splitResult.baseFile}`);
     } else {
+      // For LOINC and RxNorm, resolve directory paths if needed
+      let actualFilePath = filePath;
+      
+      if (terminologyType === 'loinc') {
+        // Check if it's a directory first
+        const stats = fs.statSync(filePath);
+        if (stats.isDirectory()) {
+          const validation = this.fileHandler.validateLoincDirectory(filePath);
+          if (!validation.valid) {
+            throw new Error(`LOINC directory validation failed: ${filePath}`);
+          }
+          // Use the found CSV file path
+          actualFilePath = validation.csvFile!;
+        }
+      } else if (terminologyType === 'rxnorm') {
+        // Check if it's a directory first
+        const stats = fs.statSync(filePath);
+        if (stats.isDirectory()) {
+          const validation = this.fileHandler.validateRxnormDirectory(filePath);
+          if (!validation.valid) {
+            throw new Error(`RxNorm directory validation failed: ${filePath}`);
+          }
+          // Use the found RRF file path
+          actualFilePath = validation.rrfFile!;
+        }
+      }
+      
       // For other terminology types, use the existing logic
       const handler = TerminologyHandlerFactory.createHandler(terminologyType, {
         dryRun: this.dryRun,
@@ -175,8 +262,8 @@ export class TerminologyUtilities {
         batchSize: this.batchSize
       });
       
-      // Create file info for the handler
-      const fileInfo = this.fileHandler.analyzeFile(filePath, terminologyType);
+      // Create file info for the handler using the resolved file path
+      const fileInfo = this.fileHandler.analyzeFile(actualFilePath, terminologyType);
       
       // Process the terminology and create a staged file
       const stagedFilePath = await handler.processAndStage(fileInfo, stagingDir);
@@ -212,25 +299,8 @@ export class TerminologyUtilities {
       batchSize: this.batchSize
     });
     
-    // For SNOMED, use the JSON file created in Stage 1
-    if (terminologyType === 'snomed') {
-      await this.uploadSnomedFromJson(fhirUrl, handler);
-    } else {
-      // For other terminology types, use the existing logic
-      const stagingDir = this.fileHandler.findStagingDirectory(this.tempDir);
-      if (!stagingDir) {
-        throw new Error('No staging files found for upload. Cannot skip upload stage.');
-      }
-      
-      // Find the most recent files for this terminology type
-      const filePath = this.fileHandler.findMostRecentFiles(this.tempDir, terminologyType);
-      if (!filePath) {
-        throw new Error(`No recent ${terminologyType.toUpperCase()} files found for upload.`);
-      }
-      
-      const fileInfo = this.fileHandler.analyzeFile(filePath, terminologyType);
-      await handler.processAndUpload(fileInfo, fhirUrl);
-    }
+    // For all terminology types, use the staged upload approach
+    await this.uploadFromStagedFiles(terminologyType, fhirUrl, handler);
     
     console.info(`${LogPrefixes.STAGE_3_UPLOAD} ${terminologyType.toUpperCase()} upload completed successfully`);
   }
@@ -252,7 +322,7 @@ export class TerminologyUtilities {
     console.info(`${LogPrefixes.STAGE_1_PREPROCESS} Using SNOMED CT namespace: ${namespace}`);
 
     // Create the CodeSystem JSON file in staging directory
-    const codeSystemId = `sct-${namespace}-${version.split('/').pop() || 'current'}`;
+    const codeSystemId = `sct-${namespace}-${version || 'current'}`;
     const jsonFilePath = path.join(stagingDir, `${codeSystemId}.json`);
     
     // Create CodeSystem header
@@ -292,6 +362,90 @@ export class TerminologyUtilities {
 
 
 
+
+  /**
+   * Upload terminology from staged files (base + chunks) for all terminology types
+   */
+  private async uploadFromStagedFiles(
+    terminologyType: 'snomed' | 'loinc' | 'rxnorm',
+    fhirUrl: string,
+    handler: any
+  ): Promise<void> {
+    console.info(`${LogPrefixes.STAGE_3_UPLOAD} Starting ${terminologyType.toUpperCase()} terminology upload from staged files`);
+    
+    // Find the staging directory
+    const stagingDir = this.fileHandler.findStagingDirectory(this.tempDir);
+    if (!stagingDir) {
+      throw new Error(`No staging directory found in temp directory. Please run Stage 1 and Stage 2 first.`);
+    }
+    
+    console.info(`${LogPrefixes.STAGE_3_UPLOAD} Using staging directory: ${stagingDir}`);
+    
+    // Find the base file and chunk files created in Stage 2
+    const baseFiles = this.fileHandler.listFiles(stagingDir).filter(file => 
+      file.endsWith('-base.json')
+    );
+    
+    const chunkFiles = this.fileHandler.listFiles(stagingDir).filter(file => 
+      file.includes('concepts-chunk-') && file.endsWith('.json')
+    ).sort(); // Sort to ensure proper order
+    
+    if (baseFiles.length === 0) {
+      throw new Error(`No base CodeSystem file found in staging directory. Please run Stage 2 first.`);
+    }
+    
+    if (chunkFiles.length === 0) {
+      throw new Error(`No concept chunk files found in staging directory. Please run Stage 2 first.`);
+    }
+    
+    const baseFilePath = path.join(stagingDir, baseFiles[0]);
+    console.info(`${LogPrefixes.STAGE_3_UPLOAD} Using base CodeSystem file: ${baseFilePath}`);
+    console.info(`${LogPrefixes.STAGE_3_UPLOAD} Found ${chunkFiles.length} concept chunk files`);
+    
+    // Read the base CodeSystem to get the ID for potential deletion
+    const baseContent = this.fileHandler.readFile(baseFilePath);
+    const baseCodeSystem = JSON.parse(baseContent);
+    
+    // Note: CodeSystem and ValueSet deletion is handled by the terminology handlers
+    // before calling this method to prevent reindexing performance issues
+    
+    // Use StagedUploadStrategy to handle the upload process
+    const { StagedUploadStrategy } = await import('./strategies/staged-upload-strategy.js');
+    const stagedStrategy = new StagedUploadStrategy({
+      dryRun: this.dryRun,
+      verbose: this.verbose,
+      tempDir: this.tempDir,
+      keepTemp: this.keepTemp,
+      replace: this.replace
+    });
+    
+    // Upload base CodeSystem (metadata only)
+    console.info(`${LogPrefixes.STAGE_3_UPLOAD} Uploading base CodeSystem...`);
+    await handler.uploadCodeSystem(baseCodeSystem, fhirUrl);
+    console.info(`${LogPrefixes.STAGE_3_UPLOAD} Successfully uploaded base CodeSystem ${baseCodeSystem.id}`);
+    
+    // Upload concept chunks using delta operations via StagedUploadStrategy
+    console.info(`${LogPrefixes.STAGE_3_UPLOAD} Uploading ${chunkFiles.length} concept chunks...`);
+    for (let i = 0; i < chunkFiles.length; i++) {
+      const chunkFile = path.join(stagingDir, chunkFiles[i]);
+      
+      // Use the existing method from StagedUploadStrategy with chunk info
+      await stagedStrategy.applyCodeSystemDeltaAdd(baseCodeSystem.id, fhirUrl, chunkFile, baseCodeSystem.url, baseCodeSystem, { current: i + 1, total: chunkFiles.length });
+      
+      // Log progress every 10 chunks
+      if ((i + 1) % 10 === 0) {
+        console.info(`${LogPrefixes.STAGE_3_UPLOAD} Progress: ${i + 1}/${chunkFiles.length} chunks uploaded`);
+      }
+    }
+    
+    console.info(`${LogPrefixes.STAGE_3_UPLOAD} Successfully uploaded CodeSystem ${baseCodeSystem.id} with ${chunkFiles.length} concept chunks`);
+    
+    // Create and upload ValueSet using the StagedUploadStrategy
+    console.info(`${LogPrefixes.VALUESET} Creating ValueSet for all codes in CodeSystem ${baseCodeSystem.id}...`);
+    await stagedStrategy.createAndUploadValueSet(baseCodeSystem, fhirUrl);
+    
+    await handler.printResourceSummary(fhirUrl, terminologyType.toUpperCase());
+  }
 
   /**
    * Upload SNOMED terminology from base file and chunk files created in Stage 2
@@ -335,15 +489,8 @@ export class TerminologyUtilities {
     const baseContent = this.fileHandler.readFile(baseFilePath);
     const baseCodeSystem = JSON.parse(baseContent);
     
-    // Delete existing CodeSystems if replace option is enabled
-    if (this.replace) {
-      console.info(`${LogPrefixes.REPLACE} Checking for existing CodeSystems to delete...`);
-      const exists = await handler.fhirClient.checkResourceExists(fhirUrl, 'CodeSystem', baseCodeSystem.id);
-      if (exists) {
-        console.info(`${LogPrefixes.REPLACE} Deleting existing CodeSystem: ${baseCodeSystem.id}`);
-        await handler.fhirClient.deleteResource(fhirUrl, 'CodeSystem', baseCodeSystem.id);
-      }
-    }
+    // Note: CodeSystem and ValueSet deletion is handled by the terminology handlers
+    // before calling this method to prevent reindexing performance issues
     
     // Use StagedUploadStrategy to handle the upload process
     const { StagedUploadStrategy } = await import('./strategies/staged-upload-strategy.js');
@@ -351,7 +498,8 @@ export class TerminologyUtilities {
       dryRun: this.dryRun,
       verbose: this.verbose,
       tempDir: this.tempDir,
-      keepTemp: this.keepTemp
+      keepTemp: this.keepTemp,
+      replace: this.replace
     });
     
     // Upload base CodeSystem (metadata only)
@@ -365,7 +513,7 @@ export class TerminologyUtilities {
       const chunkFile = path.join(stagingDir, chunkFiles[i]);
       
       // Use the existing method from StagedUploadStrategy with chunk info
-      await stagedStrategy.applyCodeSystemDeltaAdd(baseCodeSystem.id, fhirUrl, chunkFile, { current: i + 1, total: chunkFiles.length });
+      await stagedStrategy.applyCodeSystemDeltaAdd(baseCodeSystem.id, fhirUrl, chunkFile, baseCodeSystem.url, baseCodeSystem, { current: i + 1, total: chunkFiles.length });
       
       // Log progress every 10 chunks
       if ((i + 1) % 10 === 0) {

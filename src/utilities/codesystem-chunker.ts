@@ -2,8 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import chain from 'stream-chain';
 import streamJson from 'stream-json';
-import pick from 'stream-json/filters/Pick';
-import streamArray from 'stream-json/streamers/StreamArray';
+import pick from 'stream-json/filters/pick.js';
+import streamArray from 'stream-json/streamers/stream-array.js';
 import { LogPrefixes } from '../constants/log-prefixes.js';
 
 export interface CodeSystemChunkerConfig {
@@ -77,11 +77,11 @@ export class CodeSystemChunker {
         }
         
         // Now process the concepts using streaming JSON parser
-        const pipeline = new chain([
+        const pipeline = chain([
           fs.createReadStream(sourceFilePath),
           streamJson.parser(),
-          new pick({ filter: 'concept' }),
-          new streamArray()
+          pick({ filter: 'concept' }),
+          streamArray()
         ]);
         
         pipeline.on('data', (data: any) => {
@@ -125,6 +125,8 @@ export class CodeSystemChunker {
             
             // Write base CodeSystem file with metadata but no concepts
             if (codeSystemMetadata) {
+              // Ensure content mode is set to 'fragment' for delta operations
+              codeSystemMetadata.content = 'fragment';
               fs.writeFileSync(baseFile, JSON.stringify(codeSystemMetadata, null, 2));
               if (this.config.verbose) {
                 console.info(`${LogPrefixes.STAGE_2_SPLIT} Created base CodeSystem with ${chunkFiles.length} concept chunks (${conceptCount} total concepts)`);

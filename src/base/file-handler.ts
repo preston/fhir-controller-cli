@@ -80,6 +80,88 @@ export class FileHandler {
   }
 
   /**
+   * Validate RxNorm directory and find main RRF file
+   */
+  validateRxnormDirectory(dirPath: string): { valid: boolean; rrfFile?: string } {
+    try {
+      if (!fs.existsSync(dirPath)) {
+        console.error(`Directory does not exist: ${dirPath}`);
+        return { valid: false };
+      }
+
+      const stats = fs.statSync(dirPath);
+      if (!stats.isDirectory()) {
+        console.error(`Path is not a directory: ${dirPath}`);
+        return { valid: false };
+      }
+
+      // Look for RxNorm RRF file in common RxNorm directory structures
+      const possiblePaths = [
+        // Direct in directory
+        path.join(dirPath, 'RXNCONSO.RRF'),
+        // In rrf subdirectory
+        path.join(dirPath, 'rrf', 'RXNCONSO.RRF')
+      ];
+
+      // Try to find RxNorm RRF file
+      for (const possiblePath of possiblePaths) {
+        if (fs.existsSync(possiblePath)) {
+          console.info(`Found RxNorm RRF file: ${possiblePath}`);
+          return { valid: true, rrfFile: possiblePath };
+        }
+      }
+
+      console.error(`No RxNorm RRF file found in directory: ${dirPath}`);
+      return { valid: false };
+    } catch (error) {
+      console.error(`Error validating RxNorm directory ${dirPath}:`, error);
+      return { valid: false };
+    }
+  }
+
+  /**
+   * Validate LOINC directory and find main CSV file
+   */
+  validateLoincDirectory(dirPath: string): { valid: boolean; csvFile?: string } {
+    try {
+      if (!fs.existsSync(dirPath)) {
+        console.error(`Directory does not exist: ${dirPath}`);
+        return { valid: false };
+      }
+
+      const stats = fs.statSync(dirPath);
+      if (!stats.isDirectory()) {
+        console.error(`Path is not a directory: ${dirPath}`);
+        return { valid: false };
+      }
+
+      // Look for LOINC CSV file in common LOINC directory structures
+      const possiblePaths = [
+        // Direct in directory
+        path.join(dirPath, 'Loinc.csv'),
+        // In LoincTable subdirectory
+        path.join(dirPath, 'LoincTable', 'Loinc.csv'),
+        // In LoincTableCore subdirectory
+        path.join(dirPath, 'LoincTableCore', 'Loinc.csv')
+      ];
+
+      // Try to find LOINC CSV file
+      for (const possiblePath of possiblePaths) {
+        if (fs.existsSync(possiblePath)) {
+          console.info(`Found LOINC CSV file: ${possiblePath}`);
+          return { valid: true, csvFile: possiblePath };
+        }
+      }
+
+      console.error(`No LOINC CSV file found in directory: ${dirPath}`);
+      return { valid: false };
+    } catch (error) {
+      console.error(`Error validating LOINC directory ${dirPath}:`, error);
+      return { valid: false };
+    }
+  }
+
+  /**
    * Validate SNOMED CT directory and find concept file
    */
   validateSnomedDirectory(dirPath: string): { valid: boolean; conceptFile?: string } {
@@ -331,7 +413,7 @@ export class FileHandler {
     const { SnomedMetadataExtractor } = require('../terminology/snomed-metadata-extractor.js');
     const version = SnomedMetadataExtractor.extractSnomedVersion(originalFilePath);
     const namespace = SnomedMetadataExtractor.extractSnomedNamespace(originalFilePath);
-    const versionId = version.split('/').pop() || 'current';
+    const versionId = version || 'current';
     const codeSystemId = `sct-${namespace}-${versionId}`;
     const jsonFilePath = `${tempDir}/${codeSystemId}.json`;
     

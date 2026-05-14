@@ -6,7 +6,6 @@ import axios from 'axios';
 import { UploadStrategy, UploadStrategyConfig } from './upload-strategy.js';
 import { CodeSystemChunker } from '../utilities/codesystem-chunker.js';
 import { getTerminologyEntryByCodeSystem } from '../constants/terminology-registry.js';
-import { SNOMED_TERMINOLOGY_INFO } from '../constants/snomed-constants.js';
 import { LogPrefixes } from '../constants/log-prefixes.js';
 
 export class StagedUploadStrategy extends UploadStrategy {
@@ -25,6 +24,9 @@ export class StagedUploadStrategy extends UploadStrategy {
     const terminologyType = this.identifyTerminologyType(resource);
     
     console.info(`${LogPrefixes.STAGE_3_UPLOAD} ${terminologyType}: Processing ${concepts.length} concepts with file staging approach`);
+    
+    // Note: CodeSystem and ValueSet deletion is handled by the terminology handlers
+    // before calling this strategy to prevent reindexing performance issues
     
     // Use the required temp directory
     const stagingDir = `${this.config.tempDir}/fhir-staging-${Date.now()}`;
@@ -146,40 +148,26 @@ export class StagedUploadStrategy extends UploadStrategy {
   /**
    * Apply CodeSystem delta add operation
    */
-  async applyCodeSystemDeltaAdd(codeSystemId: string, fhirUrl: string, chunkFilePath: string, chunkInfo?: { current: number; total: number }): Promise<void> {
+  async applyCodeSystemDeltaAdd(codeSystemId: string, fhirUrl: string, chunkFilePath: string, systemUri: string, baseCodeSystem: any, chunkInfo?: { current: number; total: number }): Promise<void> {
     try {
       // Read the chunk file (small, safe to load)
       const chunkContent = fs.readFileSync(chunkFilePath, 'utf8');
       const concepts = JSON.parse(chunkContent);
       
-      // Create Parameters resource for $apply-codesystem-delta-add
-      // The operation expects: system (CodeSystem URI) and codeSystem (resource with concepts)
-      const parameters = {
-        resourceType: 'Parameters',
-        parameter: [
-          {
-            name: 'system',
-            valueUri: SNOMED_TERMINOLOGY_INFO.fhirUrls.system // SNOMED CT system URI
-          },
-          {
-            name: 'codeSystem',
-            resource: {
-              resourceType: 'CodeSystem',
-              id: codeSystemId,
-              url: SNOMED_TERMINOLOGY_INFO.fhirUrls.system,
-              concept: concepts
-            }
-          }
-        ]
-      };
+      // Use the base CodeSystem (with all metadata) and add concepts to it
+      // This avoids fetching from server for every chunk, improving performance
+      const updatedCodeSystem = { ...baseCodeSystem };
       
-      // Single consolidated log message
-      const chunkProgress = chunkInfo ? `chunk ${chunkInfo.current}/${chunkInfo.total}` : 'chunk';
-      console.info(`${LogPrefixes.STAGE_3_UPLOAD} Uploading ${chunkProgress}: ${path.basename(chunkFilePath)} | Applying delta add for CodeSystem ${codeSystemId} with ${concepts.length} concepts to system: ${parameters.parameter[0].valueUri}`);
+      // Add concepts to the base CodeSystem
+      if (!updatedCodeSystem.concept) {
+        updatedCodeSystem.concept = [];
+      }
+      updatedCodeSystem.concept.push(...concepts);
       
-      const response = await axios.post(
-        `${fhirUrl}/CodeSystem/$apply-codesystem-delta-add`,
-        parameters,
+      // Update the CodeSystem with the new concepts
+      const response = await axios.put(
+        `${fhirUrl}/CodeSystem/${codeSystemId}`,
+        updatedCodeSystem,
         {
           headers: {
             'Content-Type': 'application/fhir+json',
@@ -189,7 +177,7 @@ export class StagedUploadStrategy extends UploadStrategy {
         }
       );
       
-      console.info(`${LogPrefixes.STAGE_3_UPLOAD} Successfully applied delta add: ${response.status} ${response.statusText}`);
+      console.info(`${LogPrefixes.STAGE_3_UPLOAD} Successfully updated CodeSystem with ${concepts.length} concepts: ${response.status} ${response.statusText}`);
     } catch (error: any) {
       console.error(`${LogPrefixes.STAGE_3_UPLOAD} Failed to apply delta add:`, error?.response?.status, error?.response?.statusText);
       if (error?.response?.data) {
@@ -219,56 +207,8 @@ export class StagedUploadStrategy extends UploadStrategy {
       const baseContent = fs.readFileSync(baseFile, 'utf8');
       const baseCodeSystem = JSON.parse(baseContent);
       
-      // Add property definitions if not already present
-      if (!baseCodeSystem.property || baseCodeSystem.property.length === 0) {
-        console.info(`${LogPrefixes.STAGING} Adding property definitions to base CodeSystem`);
-        // Import from chunker if needed
-        const { SNOMED_TERMINOLOGY_INFO } = await import('../constants/snomed-constants.js');
-        baseCodeSystem.property = [
-          {
-            code: 'effectiveTime',
-            uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#effectiveTime`,
-            description: 'The time at which this version of the concept became active',
-            type: 'string'
-          },
-          {
-            code: 'active',
-            uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#active`,
-            description: 'Whether this concept is active',
-            type: 'code'
-          },
-          {
-            code: 'moduleId',
-            uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#moduleId`,
-            description: 'The module that contains this concept',
-            type: 'code'
-          },
-          {
-            code: 'definitionStatusId',
-            uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#definitionStatusId`,
-            description: 'The definition status of this concept (primitive or sufficiently defined)',
-            type: 'code'
-          },
-          {
-            code: 'parent',
-            uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#parent`,
-            description: 'Parent concepts in the SNOMED CT hierarchy (IS-A relationships)',
-            type: 'code'
-          },
-          {
-            code: 'child',
-            uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#child`,
-            description: 'Child concepts in the SNOMED CT hierarchy (inverse IS-A relationships)',
-            type: 'code'
-          },
-          {
-            code: 'relationship',
-            uri: `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}#relationship`,
-            description: 'Relationships to other concepts',
-            type: 'code'
-          }
-        ];
-      }
+      // Debug: Log the content mode being uploaded
+      console.info(`${LogPrefixes.STAGING} Base CodeSystem content mode: ${baseCodeSystem.content}`);
       
       await this.fhirClient.uploadResource(baseCodeSystem, fhirUrl, 'CodeSystem');
       console.info(`${LogPrefixes.STAGING} Successfully uploaded base CodeSystem ${codeSystemId}`);
@@ -278,7 +218,7 @@ export class StagedUploadStrategy extends UploadStrategy {
       for (let i = 0; i < chunkFiles.length; i++) {
         const chunkFile = chunkFiles[i];
         
-        await this.applyCodeSystemDeltaAdd(codeSystemId, fhirUrl, chunkFile, { current: i + 1, total: chunkFiles.length });
+        await this.applyCodeSystemDeltaAdd(codeSystemId, fhirUrl, chunkFile, baseCodeSystem.url, baseCodeSystem, { current: i + 1, total: chunkFiles.length });
         
         // Log progress every 10 chunks
         if ((i + 1) % 10 === 0) {
@@ -349,66 +289,4 @@ export class StagedUploadStrategy extends UploadStrategy {
     }
   }
 
-  /**
-   * Create ValueSet that includes all codes from the CodeSystem
-   */
-  private createValueSetFromCodeSystem(codeSystem: any): any {
-    const terminologyEntry = getTerminologyEntryByCodeSystem(codeSystem);
-    const valueSetId = `${codeSystem.id}-valueset`;
-    
-    if (!terminologyEntry) {
-      // Fallback for unknown terminology types
-      return {
-        resourceType: 'ValueSet',
-        id: valueSetId,
-        url: `${codeSystem.url.replace('/CodeSystem', '/ValueSet')}/${valueSetId}`,
-        version: codeSystem.version,
-        name: valueSetId,
-        title: `${codeSystem.id} ValueSet - All Codes`,
-        status: 'active',
-        publisher: 'Unknown',
-        description: `ValueSet containing all codes from the CodeSystem ${codeSystem.id}`,
-        copyright: '',
-        compose: {
-          include: [
-            {
-              system: codeSystem.url,
-              version: codeSystem.version
-            }
-          ]
-        }
-      };
-    }
-    
-    const { terminologyInfo } = terminologyEntry;
-    
-    return {
-      resourceType: 'ValueSet',
-      id: valueSetId,
-      url: `${terminologyInfo.fhirUrls.system.replace('/CodeSystem', '/ValueSet')}/${valueSetId}`,
-      version: codeSystem.version,
-      name: valueSetId,
-      title: `${terminologyInfo.identity.displayName} ${terminologyInfo.valueSetMetadata.titleSuffix}`,
-      status: 'active',
-      publisher: terminologyInfo.publisher.name,
-      description: `${terminologyInfo.valueSetMetadata.descriptionPrefix} ${codeSystem.id}`,
-      copyright: terminologyInfo.publisher.copyright,
-      compose: {
-        include: [
-          {
-            system: terminologyInfo.fhirUrls.system,
-            version: codeSystem.version
-          }
-        ]
-      }
-    };
-  }
-
-  /**
-   * Identify terminology type from CodeSystem for better logging
-   */
-  private identifyTerminologyType(codeSystem: any): string {
-    const terminologyEntry = getTerminologyEntryByCodeSystem(codeSystem);
-    return terminologyEntry?.terminologyInfo.identity.terminologyType || 'Unknown';
-  }
 }

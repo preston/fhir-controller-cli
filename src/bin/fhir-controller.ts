@@ -2,6 +2,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { fileURLToPath } from 'url';
 
 import { program } from 'commander';
@@ -31,7 +32,7 @@ cli
 	.command('poll-auditevent-and-trigger-import')
 	.description('Polls the FHIR server for resources matching the query at the specified interval.')
 	.argument('<fhir_base_url>', 'URL of the FHIR server to poll')
-	.argument('<stack_json_url>', 'FHIR controller stack.json configuration file')
+	.argument('<manifest_json_url>', 'FHIR controller data manifest (stack.json) configuration file')
 	.option('--audit-event-system <audit_event_system>', 'System code for data import audit events', 'http://dicom.nema.org/resources/ontology/DCM')
 	.option('--audit-event-code <audit_event_code>', 'Code for data import audit events', '110107')
 	.option('-i, --interval <interval>', 'Minimum delay interval between polls to the FHIR server in seconds', '3600')
@@ -60,7 +61,7 @@ cli
 				pollingPromise.finally(() => activeOperations.delete(pollingPromise));
 			}
 		}).catch(error => {
-			console.error(`Error fetching stack.json file. Please check the URL and try again. This is fatal.`);
+			console.error(`Error fetching data manifest file. Please check the URL and try again. This is fatal.`);
 			return 1;
 		});
 	});
@@ -96,7 +97,7 @@ terminologyCommand
 	.option('-d, --dry-run', 'Perform a dry run without uploading any resources')
 	.option('-v, --verbose', 'Enable verbose debugging mode')
 	.option('--keep-temporary', 'Keep temporary files after upload for debugging')
-	.option('--replace', 'Delete existing CodeSystem before importing new one')
+	.option('--replace', 'Delete existing CodeSystem and ValueSet before importing new ones')
 	.option('--batch-size <size>', 'Number of concepts to process in each batch', '1000')
 	.option('--skip-preprocess', 'Skip preprocessing stage (use most recent files in temp directory)')
 	.option('--skip-split', 'Skip splitting stage (use most recent files in temp directory)')
@@ -141,7 +142,7 @@ terminologyCommand
 		let actualFilePath = filePath;
 		if (!skipPreprocess) {
 			// Validate file based on system type
-			const allowDirectory = system === 'snomed';
+			const allowDirectory = system === 'snomed' || system === 'loinc' || system === 'rxnorm';
 			if (!terminologyUtils.validateFile(filePath, allowDirectory)) {
 				console.error('Invalid file path. Exiting.');
 				process.exit(1);
@@ -229,9 +230,16 @@ program.parse(process.argv);
 
 function safeFilePathFor(fileName: string) {
 	let safePath = fileName;
-	if (!path.isAbsolute(fileName)) {
+	
+	// Handle tilde expansion for home directory
+	if (fileName.startsWith('~/')) {
+		safePath = path.join(os.homedir(), fileName.slice(2));
+	} else if (fileName === '~') {
+		safePath = os.homedir();
+	} else if (!path.isAbsolute(fileName)) {
 		safePath = path.join(process.cwd(), fileName);
 	}
+	
 	// console.debug(`Safe path: ${safePath}`);
 	return safePath;
 }

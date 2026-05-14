@@ -296,7 +296,7 @@ export class Rf2FileReader implements ITerminologyFileReader {
    * Create SNOMED CodeSystem
    */
   private createSnomedCodeSystem(concepts: any[], version: string, namespace: string): any {
-    const versionId = version.split('/').pop() || 'unknown';
+    const versionId = version || 'unknown';
     const edition = SnomedMetadataExtractor.getSnomedEditionFromNamespace(namespace);
     
     return {
@@ -311,7 +311,7 @@ export class Rf2FileReader implements ITerminologyFileReader {
       publisher: 'SNOMED International',
       hierarchyMeaning: 'is-a',
       compositional: true,
-      content: 'complete',
+      content: 'fragment',
       count: concepts.length,
       concept: concepts,
       property: [

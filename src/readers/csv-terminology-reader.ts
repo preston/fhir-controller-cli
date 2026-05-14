@@ -177,7 +177,7 @@ export class CsvTerminologyReader implements ITerminologyFileReader {
       caseSensitive: true,
       compositional: false,
       versionNeeded: false,
-      content: 'complete',
+      content: 'fragment',
       count: concepts.length,
       concept: concepts,
       property: [
@@ -215,7 +215,7 @@ export class CsvTerminologyReader implements ITerminologyFileReader {
       caseSensitive: true,
       compositional: false,
       versionNeeded: false,
-      content: 'complete',
+      content: 'fragment',
       count: concepts.length,
       concept: concepts,
       property: [

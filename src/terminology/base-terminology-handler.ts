@@ -3,6 +3,7 @@ import { TerminologyProcessor } from '../terminology-processor.js';
 import { FhirClient } from '../base/fhir-client.js';
 import { FileHandler } from '../base/file-handler.js';
 import { UploadStrategyFactory } from '../strategies/upload-strategy-factory.js';
+import { UploadStrategy } from '../strategies/upload-strategy.js';
 import { TerminologyFileInfo } from '../types/terminology-config.js';
 import { getTerminologyEntry } from '../constants/terminology-registry.js';
 import { LogPrefixes } from '../constants/log-prefixes.js';
@@ -46,9 +47,7 @@ export abstract class BaseTerminologyHandler {
 
   abstract getExpectedIds(): string[];
 
-  abstract createValueSet?(codeSystem: CodeSystem): ValueSet;
-
-  protected async uploadCodeSystem(codeSystem: CodeSystem, fhirUrl: string): Promise<void> {
+  protected async uploadCodeSystem(codeSystem: CodeSystem, fhirUrl: string): Promise<UploadStrategy> {
     const strategy = UploadStrategyFactory.createStrategy(codeSystem, {
       dryRun: this.config.dryRun,
       verbose: this.config.verbose,
@@ -57,10 +56,7 @@ export abstract class BaseTerminologyHandler {
     });
 
     await strategy.uploadResource(codeSystem, fhirUrl, 'CodeSystem');
-  }
-
-  protected async uploadValueSet(valueSet: ValueSet, fhirUrl: string): Promise<void> {
-    await this.fhirClient.uploadResource(valueSet, fhirUrl, 'ValueSet');
+    return strategy;
   }
 
   protected async deleteExistingCodeSystems(fhirUrl: string, expectedIds: string[]): Promise<void> {
@@ -75,6 +71,23 @@ export abstract class BaseTerminologyHandler {
       if (exists) {
         console.info(`${LogPrefixes.REPLACE} Deleting existing CodeSystem: ${id}`);
         await this.fhirClient.deleteResource(fhirUrl, 'CodeSystem', id);
+      }
+    }
+  }
+
+  protected async deleteExistingValueSets(fhirUrl: string, expectedIds: string[]): Promise<void> {
+    if (!this.config.replace) {
+      return;
+    }
+
+    console.info(`${LogPrefixes.REPLACE} Checking for existing ValueSets to delete...`);
+    
+    for (const id of expectedIds) {
+      const valueSetId = `${id}-valueset`;
+      const exists = await this.fhirClient.checkResourceExists(fhirUrl, 'ValueSet', valueSetId);
+      if (exists) {
+        console.info(`${LogPrefixes.REPLACE} Deleting existing ValueSet: ${valueSetId}`);
+        await this.fhirClient.deleteResource(fhirUrl, 'ValueSet', valueSetId);
       }
     }
   }

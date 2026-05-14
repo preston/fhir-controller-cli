@@ -624,7 +624,7 @@ export class TerminologyProcessor {
       caseSensitive: true,
       compositional: false,
       versionNeeded: false,
-      content: 'complete',
+      content: 'fragment',
       count: concepts.length,
       concept: concepts,
       property: [
@@ -651,7 +651,7 @@ export class TerminologyProcessor {
     if (!namespace) {
       throw new Error('SNOMED CT namespace is required and must be extracted from the data');
     }
-    const versionId = version.split('/').pop() || 'unknown';
+    const versionId = version || 'unknown';
     const edition = this.getSnomedEditionFromNamespace(namespace);
     
     return {
@@ -666,7 +666,7 @@ export class TerminologyProcessor {
       publisher: 'SNOMED International',
       hierarchyMeaning: 'is-a',
       compositional: true,
-      content: 'complete',
+      content: 'fragment',
       count: concepts.length,
       concept: concepts,
       property: [
@@ -877,7 +877,7 @@ export class TerminologyProcessor {
       caseSensitive: true,
       compositional: false,
       versionNeeded: false,
-      content: 'complete',
+      content: 'fragment',
       count: concepts.length,
       concept: concepts,
       property: [
@@ -1051,8 +1051,7 @@ export class TerminologyProcessor {
       const dateMatch = dirName.match(/(\d{8})/);
       if (dateMatch) {
         const date = dateMatch[1];
-        const namespace = this.extractSnomedNamespace(filePath);
-        return `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}/${namespace}/version/${date}`;
+        return date;
       }
       
       const version = this.extractVersionFromRf2Files(filePath);
@@ -1112,14 +1111,14 @@ export class TerminologyProcessor {
         const part = pathParts[i];
         const versionMatch = part.match(/Loinc_(\d+\.\d+)/);
         if (versionMatch) {
-          return `${LOINC_TERMINOLOGY_INFO.fhirUrls.system}/version/${versionMatch[1]}`;
+          return versionMatch[1];
         }
       }
       
-      return LOINC_TERMINOLOGY_INFO.fhirUrls.versionCurrent;
+      return 'current';
     } catch (error) {
       console.warn('Failed to extract LOINC version, using fallback');
-      return LOINC_TERMINOLOGY_INFO.fhirUrls.versionCurrent;
+      return 'current';
     }
   }
 
@@ -1132,14 +1131,14 @@ export class TerminologyProcessor {
         const dateMatch = part.match(/(\d{8})/);
         if (dateMatch) {
           const date = dateMatch[1];
-          return `${RXNORM_TERMINOLOGY_INFO.fhirUrls.system}/version/${date}`;
+          return date;
         }
       }
       
-      return RXNORM_TERMINOLOGY_INFO.fhirUrls.versionCurrent;
+      return 'current';
     } catch (error) {
       console.warn('Failed to extract RxNorm version, using fallback');
-      return RXNORM_TERMINOLOGY_INFO.fhirUrls.versionCurrent;
+      return 'current';
     }
   }
 

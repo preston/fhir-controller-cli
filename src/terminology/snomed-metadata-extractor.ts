@@ -33,8 +33,7 @@ export class SnomedMetadataExtractor {
       const dateMatch = dirName.match(/(\d{8})/);
       if (dateMatch) {
         const date = dateMatch[1];
-        const namespace = this.extractSnomedNamespace(filePath);
-        return `http://snomed.info/sct/${namespace}/version/${date}`;
+        return date;
       }
       
       const version = this.extractVersionFromRf2Files(filePath);
@@ -143,8 +142,7 @@ export class SnomedMetadataExtractor {
           const versionMatch = line.match(/(\d{8})/);
           if (versionMatch) {
             const date = versionMatch[1];
-            const namespace = this.extractSnomedNamespace(directoryPath);
-            return `${SNOMED_TERMINOLOGY_INFO.fhirUrls.system}/${namespace}/version/${date}`;
+            return date;
           }
         }
       }

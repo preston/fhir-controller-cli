@@ -87,7 +87,7 @@ The `terminology import` command supports the following options:
 - `--dry-run`: Perform a dry run without uploading any resources
 - `--verbose`: Enable verbose debugging mode
 - `--keep-temporary`: Keep temporary files after upload for debugging
-- `--replace`: Delete existing CodeSystem before importing new one
+- `--replace`: Delete existing CodeSystem and ValueSet before importing new ones
 - `--batch-size <size>`: Number of concepts to process in each batch (default: 1000)
 - `--skip-preprocess`: Skip preprocessing stage (use most recent files in temp directory)
 - `--skip-split`: Skip splitting stage (use most recent files in temp directory)
@@ -112,30 +112,23 @@ The `terminology import` command supports the following options:
 
 ```sh
 # Upload individual terminology systems
-fhir-controller terminology import /path/to/extracted/snomed/ http://localhost:8080/fhir /tmp/staging --system snomed
-fhir-controller terminology import /path/to/extracted/loinc/ http://localhost:8080/fhir /tmp/staging --system loinc
-fhir-controller terminology import /path/to/extracted/rxnorm/ http://localhost:8080/fhir /tmp/staging --system rxnorm
 
-# Advanced options
-fhir-controller terminology import /path/to/loinc/ http://localhost:8080/fhir /tmp/staging --system loinc --batch-size 2000 --verbose
-fhir-controller terminology import /path/to/snomed/ http://localhost:8080/fhir /tmp/staging --system snomed --keep-temporary --replace
-fhir-controller terminology import /path/to/rxnorm/ http://localhost:8080/fhir /tmp/staging --system rxnorm --dry-run
+# SNOMED
+fhir-controller terminology import ~/Developer/terminologies/SnomedCT_ManagedServiceUS_PRODUCTION_US1000124_20250901T120000Z http://localhost:8080/fhir tmp -v --keep-temporary --system snomed --replace
+
+# LOINC
+fhir-controller terminology import ~/Developer/terminologies/Loinc_2.81 http://localhost:8080/fhir tmp -v --keep-temporary --system loinc --replace
+
+# RxNorm
+fhir-controller terminology import ~/Developer/terminologies/RxNorm_full_09022025 http://localhost:8080/fhir tmp -v --keep-temporary --system rxnorm --replace
+
 ```
 
 # Development & Testing Usage
 
 ```sh
-# Install TypeScript Node runner for convenience
-npm i -g ts-node
-
 # Run the CLI directly from source
-ts-node src/bin/fhir-controller.ts help
-
-# Test terminology import
-ts-node src/bin/fhir-controller.ts terminology import /path/to/snomed/ http://localhost:8080/fhir /tmp/staging --system snomed
-
-# Test Synthea upload
-ts-node src/bin/fhir-controller.ts synthea-upload /path/to/synthea/output/ http://localhost:8080/fhir
+tsx src/bin/fhir-controller.ts ...
 ```
 
 This software is released under the Apache 2.0 license. Copyright © 2017+ Preston Lee.
