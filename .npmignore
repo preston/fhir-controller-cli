@@ -1,6 +1,9 @@
 .git
 .gitignore
 .cursorrules
+.dockerignore
+.drone.yml
+Dockerfile
 node_modules/
 src/
 /test
@@ -14,3 +17,4 @@ paper/
 /tsconfig.json
 
 *.tgz
+*.md
