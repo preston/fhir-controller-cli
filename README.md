@@ -75,6 +75,9 @@ fhir-controller poll-auditevent-and-trigger-import http://fhir.example.com/fhir 
 # Only import rows tagged for a given scenario (manifest `scenarios[].id`; rows may list that id under `scenarios`)
 fhir-controller poll-auditevent-and-trigger-import http://fhir.example.com/fhir https://stack.foundry.hl7.org/stack.json --scenario partial
 
+# Match the browser app's default scenario: untagged rows, plus rows explicitly tagged `default`
+fhir-controller poll-auditevent-and-trigger-import http://fhir.example.com/fhir https://stack.foundry.hl7.org/stack.json --scenario default
+
 # Custom polling interval (seconds), verbose logging, dry run (no POST to FHIR)
 fhir-controller poll-auditevent-and-trigger-import http://fhir.example.com/fhir https://stack.foundry.hl7.org/stack.json --interval 300 --verbose --dry-run
 
@@ -85,7 +88,7 @@ fhir-controller poll-auditevent-and-trigger-import http://fhir.example.com/fhir 
 ### Polling command options
 
 - `--exit`: run a single poll cycle (and manifest import if triggered) then exit; `--interval` is ignored after that one cycle
-- `--scenario <scenario_id>`: restrict imports to manifest `data` rows for that scenario; rows with no `scenarios` array (or an empty one) still load for every scenario
+- `--scenario <scenario_id>`: restrict imports to manifest `data` rows for that browser scenario. With `--scenario default`, rows with no `scenarios` array (or an empty one) are included along with rows tagged `default`. With any other scenario, only rows explicitly tagged for that scenario are included. Omitting `--scenario` preserves legacy CLI behavior and imports all `load=true` rows.
 - `-i, --interval <seconds>`: minimum time between polls (default 3600)
 - `-v, --verbose`: extra debug output
 - `-d, --dry-run`: log actions without uploading to the FHIR server

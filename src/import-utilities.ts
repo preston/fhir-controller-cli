@@ -144,10 +144,14 @@ export class ImportUtilities {
 
 	/**
 	 * When the manifest declares scenarios, ensure the given id exists in scenarios[].id.
+	 * The browser app always provides a synthetic "default" scenario.
 	 */
 	ensureScenarioValid(stack: any, scenarioId?: string): void {
 		const sid = scenarioId?.trim();
 		if (!sid) {
+			return;
+		}
+		if (sid === 'default') {
 			return;
 		}
 		const scenarios = stack?.scenarios;
@@ -165,13 +169,21 @@ export class ImportUtilities {
 	private dataRowMatchesScenario(item: any, scenarioId?: string): boolean {
 		const sid = scenarioId?.trim();
 		if (!sid) {
+			// Backwards compatibility: existing CLI usage without --scenario imports every load=true row.
 			return true;
 		}
 		const row = item?.scenarios;
-		if (!Array.isArray(row) || row.length === 0) {
-			return true;
+		if (sid === 'default') {
+			return !Array.isArray(row) || row.length === 0 || row.includes('default');
 		}
-		return row.includes(sid);
+		return Array.isArray(row) && row.includes(sid);
+	}
+
+	selectDataFilesForImport(stack: any, scenarioId?: string): any[] {
+		const loadTrue = (stack.data || []).filter((item: any) => item.load);
+		return loadTrue
+			.filter((item: any) => this.dataRowMatchesScenario(item, scenarioId))
+			.sort((a: any, b: any) => (a.priority ?? 0) - (b.priority ?? 0));
 	}
 
 	private async readItemFileContent(
@@ -297,13 +309,12 @@ export class ImportUtilities {
 			: this.resolveManifestLocalPath(manifestRef);
 
 		const loadTrue = (stack.data || []).filter((item: any) => item.load);
-		const afterScenario = loadTrue.filter((item: any) => this.dataRowMatchesScenario(item, scenarioId));
+		const dataFiles = this.selectDataFilesForImport(stack, scenarioId);
 		if (scenarioId?.trim()) {
 			console.info(
-				`Scenario "${scenarioId.trim()}": importing ${afterScenario.length} of ${loadTrue.length} manifest rows with load=true (by priority).`
+				`Scenario "${scenarioId.trim()}": importing ${dataFiles.length} of ${loadTrue.length} manifest rows with load=true (by priority).`
 			);
 		}
-		const dataFiles = afterScenario.sort((a: any, b: any) => (a.priority ?? 0) - (b.priority ?? 0));
 
 		for (const item of dataFiles) {
 			const filePath = item.file;
