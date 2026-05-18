@@ -63,6 +63,7 @@ cli
 			console.error(error?.message ?? String(error));
 			process.exit(1);
 		}
+		importUtils.logStackConfigurationWarnings(stack, manifestRef.trim());
 		try {
 			importUtils.ensureScenarioValid(stack, scenarioId);
 		} catch (error: any) {

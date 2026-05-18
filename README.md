@@ -82,6 +82,8 @@ Monitor a FHIR server for AuditEvents and automatically trigger imports when the
 
 The second argument is the **stack manifest** (`stack.json`): an HTTP(S) URL, a `file://` URL, or a filesystem path. Relative paths are resolved from the current working directory; a leading `~/` expands to your home directory (same as other commands). Data files listed in the manifest are loaded from the same base as the manifest (URL resolution for remote manifests, directory-relative paths for local manifests).
 
+The CLI logs browser-compatible manifest warnings for questionable configuration values, such as invalid URLs, unknown drivers or loaders, duplicate priorities, undefined scenarios, and missing CQL evaluation IDs. These warnings do not stop the import; they are informational so existing stacks keep running.
+
 ```sh
 # Poll and import using a remote manifest URL
 fhir-controller poll-auditevent-and-trigger-import http://fhir.example.com/fhir https://stack.foundry.hl7.org/stack.json

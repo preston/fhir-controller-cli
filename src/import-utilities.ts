@@ -14,6 +14,9 @@ interface CqlLibraryInfo {
 
 type ResetDriver = 'hapi' | 'wildfhir';
 
+const VALID_STACK_DRIVERS = ['generic', 'hapi', 'wildfhir', 'fhircandle'];
+const VALID_STACK_LOADERS = ['fhir-bundle', 'cql-as-fhir-library'];
+
 function resolveUserFilePath(input: string): string {
 	const trimmed = input.trim();
 	if (trimmed.startsWith('~/')) {
@@ -35,6 +38,7 @@ export class ImportUtilities {
 	/** After POSTing an import AuditEvent, search may lag; direct GET this URL until search finds matches. */
 	private lastImportAuditEventDirectReadUrl: string | null = null;
 	private loggedSearchLagHint: boolean = false;
+	private loggedStackWarningKeys = new Set<string>();
 
 	constructor(dryRun: boolean = false, debug: boolean = false) {
 		this.dryRun = dryRun;
@@ -237,6 +241,89 @@ export class ImportUtilities {
 			const msg = e?.message ?? String(e);
 			throw new Error(`Invalid JSON in manifest ${localPath}: ${msg}`);
 		}
+	}
+
+	getStackConfigurationWarnings(config: any): string[] {
+		const warnings: string[] = [];
+		const warn = (message: string) => warnings.push(message);
+
+		if (!config.fhir_base_url || typeof config.fhir_base_url !== 'string') {
+			warn('FHIR Base URL is missing or invalid.');
+		} else if (!config.fhir_base_url.match(/^https?:\/\/.+/)) {
+			warn('FHIR Base URL may be invalid; expected HTTP or HTTPS URL.');
+		}
+
+		if (!config.driver || !VALID_STACK_DRIVERS.includes(config.driver)) {
+			warn(`Driver "${config.driver || '(empty)'}" is not recognized; falling back to generic.`);
+		}
+
+		if (!config.data || !Array.isArray(config.data)) {
+			warn('No data files configured.');
+		} else {
+			const priorities = new Map<number, number[]>();
+			const scenarioIds = new Set([
+				'default',
+				...((Array.isArray(config.scenarios) ? config.scenarios : [])
+					.map((scenario: any) => scenario?.id)
+					.filter((id: unknown) => typeof id === 'string') as string[]),
+			]);
+
+			config.data.forEach((file: any, index: number) => {
+				const fileNum = index + 1;
+
+				if (!file.file || String(file.file).trim() === '') {
+					warn(`Data file ${fileNum}: File path is empty.`);
+				}
+				if (!file.name || String(file.name).trim() === '') {
+					warn(`Data file ${fileNum}: Name is empty.`);
+				}
+				if (file.loader && !VALID_STACK_LOADERS.includes(file.loader)) {
+					warn(`Data file ${fileNum}: Loader "${file.loader}" is not recognized.`);
+				}
+				if (file.loader === 'cql-as-fhir-library' && (!file.evaluate || !file.evaluate.id)) {
+					warn(`Data file ${fileNum} (${file.name || 'CQL'}) of type cql-as-fhir-library has no evaluation ID; CQL $evaluate will not be available.`);
+				}
+				if (typeof file.priority === 'number' && file.priority < 0) {
+					warn(`Data file ${fileNum}: Priority is negative (${file.priority}).`);
+				}
+
+				const prio = typeof file.priority === 'number' ? file.priority : 0;
+				if (!priorities.has(prio)) priorities.set(prio, []);
+				priorities.get(prio)!.push(fileNum);
+
+				(file.scenarios || []).forEach((scenarioId: string) => {
+					if (scenarioIds.size > 0 && !scenarioIds.has(scenarioId)) {
+						warn(`Data file ${fileNum}: Scenario "${scenarioId}" is not defined in scenarios.`);
+					}
+				});
+			});
+
+			priorities.forEach((indices, prio) => {
+				if (indices.length > 1) {
+					warn(`Multiple data files share priority ${prio} (files ${indices.join(', ')}); load order may be ambiguous.`);
+				}
+			});
+		}
+
+		(config.links || []).forEach((link: any, index: number) => {
+			if (!link.url || !String(link.url).match(/^https?:\/\/.+/)) {
+				warn(`Link ${index + 1} "${link.name || '(unnamed)'}": URL is missing or invalid.`);
+			}
+		});
+
+		return warnings;
+	}
+
+	logStackConfigurationWarnings(config: any, warningKey?: string): string[] {
+		const warnings = this.getStackConfigurationWarnings(config);
+		if (warningKey && this.loggedStackWarningKeys.has(warningKey)) {
+			return warnings;
+		}
+		if (warningKey) {
+			this.loggedStackWarningKeys.add(warningKey);
+		}
+		warnings.forEach(message => console.warn('[Stack Config]', message));
+		return warnings;
 	}
 
 	/**
@@ -466,6 +553,7 @@ export class ImportUtilities {
 	): Promise<any> {
 		const manifestRef = stackJsonUrl.trim();
 		const stack = await this.loadManifest(manifestRef);
+		this.logStackConfigurationWarnings(stack, manifestRef);
 		this.ensureScenarioValid(stack, scenarioId);
 
 		const resolvedManifestLocalPath = this.isRemoteHttpManifest(manifestRef)

@@ -73,6 +73,81 @@ describe('scenario manifest row selection', () => {
 
 });
 
+describe('stack configuration warnings', () => {
+
+    test('returns browser-compatible warnings without throwing', () => {
+        const warnings = new ImportUtilities().getStackConfigurationWarnings({
+            fhir_base_url: 'localhost:8080/fhir',
+            driver: 'unknown',
+            links: [
+                { name: 'Bad Link', url: '/relative' }
+            ],
+            scenarios: [
+                { id: 'partial' }
+            ],
+            data: [
+                {
+                    file: '',
+                    name: '',
+                    loader: 'not-a-loader',
+                    priority: -1,
+                    scenarios: ['missing']
+                },
+                {
+                    file: 'logic.cql',
+                    name: 'Logic',
+                    loader: 'cql-as-fhir-library',
+                    priority: -1
+                }
+            ]
+        });
+
+        expect(warnings).toEqual([
+            'FHIR Base URL may be invalid; expected HTTP or HTTPS URL.',
+            'Driver "unknown" is not recognized; falling back to generic.',
+            'Data file 1: File path is empty.',
+            'Data file 1: Name is empty.',
+            'Data file 1: Loader "not-a-loader" is not recognized.',
+            'Data file 1: Priority is negative (-1).',
+            'Data file 1: Scenario "missing" is not defined in scenarios.',
+            'Data file 2 (Logic) of type cql-as-fhir-library has no evaluation ID; CQL $evaluate will not be available.',
+            'Data file 2: Priority is negative (-1).',
+            'Multiple data files share priority -1 (files 1, 2); load order may be ambiguous.',
+            'Link 1 "Bad Link": URL is missing or invalid.'
+        ]);
+    });
+
+    test('returns no warnings for a valid minimal stack configuration', () => {
+        expect(new ImportUtilities().getStackConfigurationWarnings({
+            fhir_base_url: 'https://example.org/fhir',
+            driver: 'hapi',
+            links: [
+                { name: 'FHIR Server', url: 'https://example.org' }
+            ],
+            scenarios: [
+                { id: 'partial' }
+            ],
+            data: [
+                {
+                    file: 'bundle.json',
+                    name: 'Bundle',
+                    loader: 'fhir-bundle',
+                    priority: 1,
+                    scenarios: ['default', 'partial']
+                },
+                {
+                    file: 'logic.cql',
+                    name: 'Logic',
+                    loader: 'cql-as-fhir-library',
+                    priority: 2,
+                    evaluate: { id: 'Logic' }
+                }
+            ]
+        })).toEqual([]);
+    });
+
+});
+
 describe('CQL Library import helpers', () => {
 
     test('extracts browser-compatible CQL library name and version', () => {
