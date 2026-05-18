@@ -63,6 +63,35 @@ export class ImportUtilities {
 		return fhirBaseUrl.replace(/\/*$/, '');
 	}
 
+	cqlEvaluateUrlFor(fhirBaseUrl: string, libraryId: string): string {
+		const base = this.normalizeFhirBaseUrl(fhirBaseUrl);
+		return `${base}/Library/${encodeURIComponent(libraryId)}/$evaluate`;
+	}
+
+	buildEvaluateParameters(subject: string): any {
+		return {
+			resourceType: 'Parameters',
+			parameter: [
+				{
+					name: 'subject',
+					valueString: subject,
+				},
+			],
+		};
+	}
+
+	async evaluateCqlLibrary(fhirBaseUrl: string, libraryId: string, subject: string): Promise<any> {
+		const url = this.cqlEvaluateUrlFor(fhirBaseUrl, libraryId);
+		const parameters = this.buildEvaluateParameters(subject);
+		const response = await axios.post(url, parameters, {
+			headers: {
+				'Content-Type': 'application/fhir+json',
+				Accept: 'application/fhir+json',
+			},
+		});
+		return response.data;
+	}
+
 	private rememberPostedImportAuditEventUrl(fhirBaseUrl: string, response: { headers?: any; data?: AuditEvent }): void {
 		const base = this.normalizeFhirBaseUrl(fhirBaseUrl);
 		const rawLoc = response.headers?.location;

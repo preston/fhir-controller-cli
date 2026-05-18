@@ -117,6 +117,28 @@ describe('CQL Library import helpers', () => {
 
 });
 
+describe('CQL evaluation helpers', () => {
+
+    test('builds the browser-compatible CQL evaluate Parameters resource', () => {
+        expect(new ImportUtilities().buildEvaluateParameters('Patient/example')).toEqual({
+            resourceType: 'Parameters',
+            parameter: [
+                {
+                    name: 'subject',
+                    valueString: 'Patient/example'
+                }
+            ]
+        });
+    });
+
+    test('builds a normalized CQL evaluate URL', () => {
+        expect(new ImportUtilities().cqlEvaluateUrlFor('https://example.org/fhir/', 'Basic-Statin-Artifact')).toEqual(
+            'https://example.org/fhir/Library/Basic-Statin-Artifact/$evaluate'
+        );
+    });
+
+});
+
 function cli(args: string[], cwd: string = __dirname) {
     return new Promise<{ code: number, error: ExecException | null, stdout: string, stderr: string }>(resolve => {
         exec(`node ${path.resolve('build/bin/fhir-controller.js')} ${args.join(' ')}`,

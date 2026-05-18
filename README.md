@@ -98,6 +98,17 @@ fhir-controller poll-auditevent-and-trigger-import http://fhir.example.com/fhir 
 
 For manifest rows with `loader: "cql-as-fhir-library"`, the CLI now matches the browser app by reading the CQL `library <name> version '<version>'` declaration and uploading the primary FHIR `Library` resource to `Library/<name>` with that version. For backwards compatibility, when the legacy manifest-derived id differs from the CQL library name, the CLI also uploads a compatibility alias at the old `Library/<manifest-name>` id. If a CQL file has no parseable library declaration, the CLI keeps the previous behavior and uses the manifest-derived id and `item.version || "0.0.0"`.
 
+## CQL Evaluation
+
+Evaluate a CQL Library already loaded on a FHIR server:
+
+```sh
+fhir-controller cql evaluate http://localhost:8080/fhir HelloWorld Patient/cfsb1703736930464
+fhir-controller cql evaluate http://localhost:8080/fhir Basic-Statin-Artifact cfsb1703736930464
+```
+
+The command POSTs the same FHIR `Parameters` shape as the browser app to `Library/<library_id>/$evaluate`, using a single `subject` parameter with `valueString` set to the subject argument.
+
 ## Terminology Imports
 
 The CLI supports uploading major terminology systems to FHIR servers:

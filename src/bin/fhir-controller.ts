@@ -112,6 +112,32 @@ cli.command('synthea-upload')
 		await uploadPromise;
 	});
 
+const cqlCommand = cli.command('cql');
+
+cqlCommand
+	.command('evaluate')
+	.description('Evaluate a CQL Library resource with the same subject parameter shape used by the browser app.')
+	.argument('<fhir_url>', 'URL of the FHIR server to evaluate against')
+	.argument('<library_id>', 'FHIR Library id to evaluate')
+	.argument('<subject>', 'Subject value to send, such as Patient/123 or 123')
+	.action(async (fhirUrl: string, libraryId: string, subject: string) => {
+		const utils = new ImportUtilities(false, false);
+		try {
+			const result = await utils.evaluateCqlLibrary(fhirUrl, libraryId, subject);
+			console.log(JSON.stringify(result, null, 2));
+		} catch (error: any) {
+			console.error(`CQL evaluation failed for Library/${libraryId}.`);
+			if (error?.response?.data) {
+				console.error(JSON.stringify(error.response.data, null, 2));
+			} else if (error?.message) {
+				console.error(error.message);
+			} else {
+				console.error(error);
+			}
+			process.exit(1);
+		}
+	});
+
 const terminologyCommand = cli.command('terminology');
 
 terminologyCommand
