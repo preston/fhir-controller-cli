@@ -73,6 +73,50 @@ describe('scenario manifest row selection', () => {
 
 });
 
+describe('CQL Library import helpers', () => {
+
+    test('extracts browser-compatible CQL library name and version', () => {
+        const cql = `library "BrowserAlignedLibrary" version '1.2.3'\nusing FHIR version '4.0.1'`;
+        expect(new ImportUtilities().extractCqlLibraryNameAndVersion(cql)).toEqual({
+            libraryName: 'BrowserAlignedLibrary',
+            version: '1.2.3'
+        });
+    });
+
+    test('returns null for CQL without a browser-parseable library declaration', () => {
+        const cql = `library LegacyOnlyLibrary\nusing FHIR version '4.0.1'`;
+        expect(new ImportUtilities().extractCqlLibraryNameAndVersion(cql)).toBeNull();
+    });
+
+    test('builds a browser-style FHIR Library resource from CQL metadata', () => {
+        const cql = `library BrowserAlignedLibrary version '1.2.3'`;
+        const resource = new ImportUtilities().buildCqlLibraryResource(
+            'BrowserAlignedLibrary',
+            '1.2.3',
+            'Test description',
+            cql,
+            'https://example.org/fhir'
+        );
+
+        expect(resource).toMatchObject({
+            resourceType: 'Library',
+            id: 'BrowserAlignedLibrary',
+            version: '1.2.3',
+            name: 'BrowserAlignedLibrary',
+            title: 'BrowserAlignedLibrary',
+            status: 'active',
+            description: 'Test description',
+            url: 'https://example.org/fhir/Library/BrowserAlignedLibrary'
+        });
+        expect(Buffer.from(resource.content[0].data, 'base64').toString('utf8')).toEqual(cql);
+    });
+
+    test('preserves the legacy manifest-derived Library id helper', () => {
+        expect(new ImportUtilities().legacyCqlLibraryIdFor({ name: 'Legacy Library Name!' }, 'logic.cql')).toEqual('LegacyLibraryName');
+    });
+
+});
+
 function cli(args: string[], cwd: string = __dirname) {
     return new Promise<{ code: number, error: ExecException | null, stdout: string, stderr: string }>(resolve => {
         exec(`node ${path.resolve('build/bin/fhir-controller.js')} ${args.join(' ')}`,

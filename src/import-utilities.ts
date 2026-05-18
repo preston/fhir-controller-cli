@@ -7,6 +7,11 @@ import { fileURLToPath } from 'url';
 import axios from 'axios';
 import type { Bundle, AuditEvent } from 'fhir/r4';
 
+interface CqlLibraryInfo {
+	libraryName: string;
+	version: string;
+}
+
 function resolveUserFilePath(input: string): string {
 	const trimmed = input.trim();
 	if (trimmed.startsWith('~/')) {
@@ -186,6 +191,73 @@ export class ImportUtilities {
 			.sort((a: any, b: any) => (a.priority ?? 0) - (b.priority ?? 0));
 	}
 
+	extractCqlLibraryNameAndVersion(content: string): CqlLibraryInfo | null {
+		const libraryRegex = /^library\s+"?([\w-]+)"?\s+version\s+'([^']+)'/m;
+		const match = content.match(libraryRegex);
+		if (!match) {
+			return null;
+		}
+		return { libraryName: match[1], version: match[2] };
+	}
+
+	legacyCqlLibraryIdFor(item: any, filePath: string): string {
+		return (item.name || filePath).replace(/[^A-Za-z0-9]/g, '');
+	}
+
+	buildCqlLibraryResource(
+		libraryId: string,
+		version: string,
+		description: string,
+		cqlContent: string,
+		fhirBaseUrl: string
+	): any {
+		return {
+			resourceType: 'Library',
+			type: {},
+			id: libraryId,
+			version,
+			name: libraryId,
+			title: libraryId,
+			status: 'active',
+			description,
+			url: `${fhirBaseUrl}/Library/${libraryId}`,
+			content: [
+				{
+					contentType: 'text/cql',
+					data: Buffer.from(cqlContent, 'utf8').toString('base64'),
+				},
+			],
+		};
+	}
+
+	private async putCqlLibraryResource(
+		fhirBaseUrl: string,
+		libraryId: string,
+		libraryResource: any,
+		itemName: string,
+		filePath: string,
+		label: string = 'Imported'
+	): Promise<void> {
+		if (this.dryRun) {
+			console.log(`[DRY RUN] Would PUT Library "${itemName}" (${filePath}) to ${fhirBaseUrl}/Library/${libraryId}`);
+			return;
+		}
+		try {
+			const postResp = await axios.put(`${fhirBaseUrl}/Library/${libraryId}`, libraryResource, {
+				headers: {
+					'Content-Type': 'application/fhir+json',
+					Accept: 'application/fhir+json',
+				},
+			});
+			console.info(`[SUCCESS] ${label} Library "${itemName}" (${filePath}) to ${fhirBaseUrl}/Library/${libraryId}: ${postResp.status} ${postResp.statusText}`);
+		} catch (err: any) {
+			console.error(`[FAILURE] Importing Library "${itemName}" (${filePath}) to ${fhirBaseUrl}/Library/${libraryId}:`, err?.response?.status, err?.response?.statusText);
+			if (err?.response?.data) {
+				console.error(JSON.stringify(err.response.data, null, 2));
+			}
+		}
+	}
+
 	private async readItemFileContent(
 		manifestRef: string,
 		resolvedManifestLocalPath: string | null,
@@ -356,41 +428,59 @@ export class ImportUtilities {
 				}
 			} else if (item.loader === 'cql-as-fhir-library') {
 				const cqlContent = typeof resourceData === 'string' ? resourceData : JSON.stringify(resourceData);
-				const libraryId = (item.name || filePath).replace(/[^A-Za-z0-9]/g, '');
-				const libraryResource = {
-					resourceType: 'Library',
-					type: {},
-					id: libraryId,
-					version: item.version || '0.0.0',
-					name: libraryId,
-					title: libraryId,
-					status: 'active',
-					description: item.description || '',
-					url: fhirBaseUrl + '/Library/' + libraryId,
-					content: [
-						{
-							contentType: 'text/cql',
-							data: Buffer.from(cqlContent, 'utf8').toString('base64'),
-						},
-					],
-				};
-				if (this.dryRun) {
-					console.log(`[DRY RUN] Would PUT Library "${item.name}" (${filePath}) to ${fhirBaseUrl}/Library`);
-				} else {
-					try {
-						const postResp = await axios.put(`${fhirBaseUrl}/Library/${libraryId}`, libraryResource, {
-							headers: {
-								'Content-Type': 'application/fhir+json',
-								Accept: 'application/fhir+json',
-							},
-						});
-						console.info(`[SUCCESS] Imported Library "${item.name}" (${filePath}) to ${fhirBaseUrl}/Library: ${postResp.status} ${postResp.statusText}`);
-					} catch (err: any) {
-						console.error(`[FAILURE] Importing Library "${item.name}" (${filePath}) to ${fhirBaseUrl}/Library:`, err?.response?.status, err?.response?.statusText);
-						if (err?.response?.data) {
-							console.error(JSON.stringify(err.response.data, null, 2));
-						}
+				const cqlInfo = this.extractCqlLibraryNameAndVersion(cqlContent);
+				const legacyLibraryId = this.legacyCqlLibraryIdFor(item, filePath);
+				const description = item.description || 'CQL Library loaded from file: ' + filePath;
+
+				if (cqlInfo) {
+					const browserLibraryResource = this.buildCqlLibraryResource(
+						cqlInfo.libraryName,
+						cqlInfo.version,
+						description,
+						cqlContent,
+						fhirBaseUrl
+					);
+					await this.putCqlLibraryResource(
+						fhirBaseUrl,
+						cqlInfo.libraryName,
+						browserLibraryResource,
+						item.name,
+						filePath
+					);
+
+					if (legacyLibraryId && legacyLibraryId !== cqlInfo.libraryName) {
+						const legacyResource = this.buildCqlLibraryResource(
+							legacyLibraryId,
+							item.version || '0.0.0',
+							description,
+							cqlContent,
+							fhirBaseUrl
+						);
+						await this.putCqlLibraryResource(
+							fhirBaseUrl,
+							legacyLibraryId,
+							legacyResource,
+							item.name,
+							filePath,
+							'Imported compatibility alias for'
+						);
 					}
+				} else {
+					console.warn(`[WARNING] Could not extract CQL library name and version from "${filePath}". Using legacy manifest-derived Library id "${legacyLibraryId}".`);
+					const legacyResource = this.buildCqlLibraryResource(
+						legacyLibraryId,
+						item.version || '0.0.0',
+						description,
+						cqlContent,
+						fhirBaseUrl
+					);
+					await this.putCqlLibraryResource(
+						fhirBaseUrl,
+						legacyLibraryId,
+						legacyResource,
+						item.name,
+						filePath
+					);
 				}
 			} else {
 				console.warn(`[SKIP] Loader "${item.loader}" not supported for "${item.name}" (${filePath})`);

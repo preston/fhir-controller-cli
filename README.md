@@ -94,6 +94,10 @@ fhir-controller poll-auditevent-and-trigger-import http://fhir.example.com/fhir 
 - `-d, --dry-run`: log actions without uploading to the FHIR server
 - `--audit-event-system` / `--audit-event-code`: match and create the import AuditEvent type (defaults match the examples above)
 
+### CQL Library imports
+
+For manifest rows with `loader: "cql-as-fhir-library"`, the CLI now matches the browser app by reading the CQL `library <name> version '<version>'` declaration and uploading the primary FHIR `Library` resource to `Library/<name>` with that version. For backwards compatibility, when the legacy manifest-derived id differs from the CQL library name, the CLI also uploads a compatibility alias at the old `Library/<manifest-name>` id. If a CQL file has no parseable library declaration, the CLI keeps the previous behavior and uses the manifest-derived id and `item.version || "0.0.0"`.
+
 ## Terminology Imports
 
 The CLI supports uploading major terminology systems to FHIR servers:
