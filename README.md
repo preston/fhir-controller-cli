@@ -47,6 +47,23 @@ docker run --rm --pull always p3000/fhir-controller-cli:latest terminology impor
 
 # Available Commands
 
+## Server Reset
+
+Permanently reset server data using the same driver-specific reset endpoints as the browser app.
+
+```sh
+# HAPI FHIR: POST /$expunge with expungeEverything=true
+fhir-controller server reset http://localhost:8080/fhir --driver hapi-fhir
+
+# WildFHIR: POST /$purge-all
+fhir-controller server reset http://wildfhir.example.com/fhir --driver wild-fhir
+
+# Preview the request without sending it
+fhir-controller server reset http://localhost:8080/fhir --driver hapi-fhir --dry-run
+```
+
+Supported reset drivers are `hapi-fhir` and `wild-fhir` (`hapi` and `wildfhir` are accepted aliases). Generic and FHIR Candle do not currently support permanent reset behavior in FHIR Controller.
+
 ## Synthea Upload
 
 Upload Synthea-generated FHIR resources to a FHIR server:

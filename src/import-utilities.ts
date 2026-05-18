@@ -12,6 +12,8 @@ interface CqlLibraryInfo {
 	version: string;
 }
 
+type ResetDriver = 'hapi' | 'wildfhir';
+
 function resolveUserFilePath(input: string): string {
 	const trimmed = input.trim();
 	if (trimmed.startsWith('~/')) {
@@ -84,6 +86,67 @@ export class ImportUtilities {
 		const url = this.cqlEvaluateUrlFor(fhirBaseUrl, libraryId);
 		const parameters = this.buildEvaluateParameters(subject);
 		const response = await axios.post(url, parameters, {
+			headers: {
+				'Content-Type': 'application/fhir+json',
+				Accept: 'application/fhir+json',
+			},
+		});
+		return response.data;
+	}
+
+	normalizeResetDriver(driver: string): ResetDriver {
+		const normalized = driver.trim().toLowerCase().replace(/_/g, '-');
+		switch (normalized) {
+			case 'hapi':
+			case 'hapi-fhir':
+				return 'hapi';
+			case 'wildfhir':
+			case 'wild-fhir':
+				return 'wildfhir';
+			default:
+				throw new Error(`Unsupported reset driver "${driver}". Use hapi-fhir or wild-fhir.`);
+		}
+	}
+
+	resetServerUrlFor(fhirBaseUrl: string, driver: string): string {
+		const base = this.normalizeFhirBaseUrl(fhirBaseUrl);
+		switch (this.normalizeResetDriver(driver)) {
+			case 'hapi':
+				return `${base}/$expunge`;
+			case 'wildfhir':
+				return `${base}/$purge-all`;
+		}
+	}
+
+	resetServerPayloadFor(driver: string): any {
+		switch (this.normalizeResetDriver(driver)) {
+			case 'hapi':
+				return {
+					resourceType: 'Parameters',
+					parameter: [
+						{
+							name: 'expungeEverything',
+							valueBoolean: true,
+						},
+					],
+				};
+			case 'wildfhir':
+				return {};
+		}
+	}
+
+	async resetServerData(fhirBaseUrl: string, driver: string): Promise<any> {
+		const url = this.resetServerUrlFor(fhirBaseUrl, driver);
+		const payload = this.resetServerPayloadFor(driver);
+		if (this.dryRun) {
+			return {
+				dryRun: true,
+				method: 'POST',
+				url,
+				payload,
+			};
+		}
+		const response = await axios.post(url, payload, {
 			headers: {
 				'Content-Type': 'application/fhir+json',
 				Accept: 'application/fhir+json',

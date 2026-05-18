@@ -139,6 +139,59 @@ describe('CQL evaluation helpers', () => {
 
 });
 
+describe('server reset helpers', () => {
+
+    test('normalizes supported reset driver aliases', () => {
+        const utils = new ImportUtilities();
+        expect(utils.normalizeResetDriver('hapi')).toEqual('hapi');
+        expect(utils.normalizeResetDriver('hapi-fhir')).toEqual('hapi');
+        expect(utils.normalizeResetDriver('wildfhir')).toEqual('wildfhir');
+        expect(utils.normalizeResetDriver('wild-fhir')).toEqual('wildfhir');
+    });
+
+    test('rejects unsupported reset drivers', () => {
+        expect(() => new ImportUtilities().normalizeResetDriver('fhircandle')).toThrow(/Unsupported reset driver/);
+    });
+
+    test('builds browser-compatible HAPI reset request details', () => {
+        const utils = new ImportUtilities();
+        expect(utils.resetServerUrlFor('https://example.org/fhir/', 'hapi-fhir')).toEqual('https://example.org/fhir/$expunge');
+        expect(utils.resetServerPayloadFor('hapi-fhir')).toEqual({
+            resourceType: 'Parameters',
+            parameter: [
+                {
+                    name: 'expungeEverything',
+                    valueBoolean: true
+                }
+            ]
+        });
+    });
+
+    test('builds browser-compatible WildFHIR reset request details', () => {
+        const utils = new ImportUtilities();
+        expect(utils.resetServerUrlFor('https://example.org/fhir/', 'wild-fhir')).toEqual('https://example.org/fhir/$purge-all');
+        expect(utils.resetServerPayloadFor('wild-fhir')).toEqual({});
+    });
+
+    test('returns reset request details in dry-run mode without a server call', async () => {
+        await expect(new ImportUtilities(true).resetServerData('https://example.org/fhir/', 'hapi-fhir')).resolves.toEqual({
+            dryRun: true,
+            method: 'POST',
+            url: 'https://example.org/fhir/$expunge',
+            payload: {
+                resourceType: 'Parameters',
+                parameter: [
+                    {
+                        name: 'expungeEverything',
+                        valueBoolean: true
+                    }
+                ]
+            }
+        });
+    });
+
+});
+
 function cli(args: string[], cwd: string = __dirname) {
     return new Promise<{ code: number, error: ExecException | null, stdout: string, stderr: string }>(resolve => {
         exec(`node ${path.resolve('build/bin/fhir-controller.js')} ${args.join(' ')}`,

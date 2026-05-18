@@ -112,6 +112,40 @@ cli.command('synthea-upload')
 		await uploadPromise;
 	});
 
+const serverCommand = cli.command('server');
+
+serverCommand
+	.command('reset')
+	.description('Permanently reset server data using a supported FHIR Controller driver.')
+	.argument('<fhir_url>', 'URL of the FHIR server to reset')
+	.requiredOption('--driver <driver>', 'Reset driver to use: hapi-fhir or wild-fhir')
+	.option('-d, --dry-run', 'Print the reset request without sending it')
+	.action(async (fhirUrl: string, options: any) => {
+		const dryRunReset = Boolean(options.dryRun);
+		const utils = new ImportUtilities(dryRunReset, false);
+		try {
+			const result = await utils.resetServerData(fhirUrl, options.driver);
+			if (dryRunReset) {
+				console.log(JSON.stringify(result, null, 2));
+			} else {
+				console.info(`Server reset request completed using driver "${options.driver}".`);
+				if (result != null && Object.keys(result).length > 0) {
+					console.log(JSON.stringify(result, null, 2));
+				}
+			}
+		} catch (error: any) {
+			console.error('Server reset failed.');
+			if (error?.response?.data) {
+				console.error(JSON.stringify(error.response.data, null, 2));
+			} else if (error?.message) {
+				console.error(error.message);
+			} else {
+				console.error(error);
+			}
+			process.exit(1);
+		}
+	});
+
 const cqlCommand = cli.command('cql');
 
 cqlCommand
