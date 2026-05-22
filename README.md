@@ -47,6 +47,23 @@ docker run --rm --pull always p3000/fhir-controller-cli:latest terminology impor
 
 # Available Commands
 
+## Server Reset
+
+Permanently reset server data using the same driver-specific reset endpoints as the browser app.
+
+```sh
+# HAPI FHIR: POST /$expunge with expungeEverything=true
+fhir-controller server reset http://localhost:8080/fhir --driver hapi-fhir
+
+# WildFHIR: POST /$purge-all
+fhir-controller server reset http://wildfhir.example.com/fhir --driver wild-fhir
+
+# Preview the request without sending it
+fhir-controller server reset http://localhost:8080/fhir --driver hapi-fhir --dry-run
+```
+
+Supported reset drivers are `hapi-fhir` and `wild-fhir` (`hapi` and `wildfhir` are accepted aliases). Generic and FHIR Candle do not currently support permanent reset behavior in FHIR Controller.
+
 ## Synthea Upload
 
 Upload Synthea-generated FHIR resources to a FHIR server:
@@ -65,6 +82,8 @@ Monitor a FHIR server for AuditEvents and automatically trigger imports when the
 
 The second argument is the **stack manifest** (`stack.json`): an HTTP(S) URL, a `file://` URL, or a filesystem path. Relative paths are resolved from the current working directory; a leading `~/` expands to your home directory (same as other commands). Data files listed in the manifest are loaded from the same base as the manifest (URL resolution for remote manifests, directory-relative paths for local manifests).
 
+The CLI logs browser-compatible manifest warnings for questionable configuration values, such as invalid URLs, unknown drivers or loaders, duplicate priorities, undefined scenarios, and missing CQL evaluation IDs. These warnings do not stop the import; they are informational so existing stacks keep running.
+
 ```sh
 # Poll and import using a remote manifest URL
 fhir-controller poll-auditevent-and-trigger-import http://fhir.example.com/fhir https://stack.foundry.hl7.org/stack.json
@@ -74,6 +93,9 @@ fhir-controller poll-auditevent-and-trigger-import http://fhir.example.com/fhir 
 
 # Only import rows tagged for a given scenario (manifest `scenarios[].id`; rows may list that id under `scenarios`)
 fhir-controller poll-auditevent-and-trigger-import http://fhir.example.com/fhir https://stack.foundry.hl7.org/stack.json --scenario partial
+
+# Match the browser app's default scenario: untagged rows, plus rows explicitly tagged `default`
+fhir-controller poll-auditevent-and-trigger-import http://fhir.example.com/fhir https://stack.foundry.hl7.org/stack.json --scenario default
 
 # Custom polling interval (seconds), verbose logging, dry run (no POST to FHIR)
 fhir-controller poll-auditevent-and-trigger-import http://fhir.example.com/fhir https://stack.foundry.hl7.org/stack.json --interval 300 --verbose --dry-run
@@ -85,11 +107,26 @@ fhir-controller poll-auditevent-and-trigger-import http://fhir.example.com/fhir 
 ### Polling command options
 
 - `--exit`: run a single poll cycle (and manifest import if triggered) then exit; `--interval` is ignored after that one cycle
-- `--scenario <scenario_id>`: restrict imports to manifest `data` rows for that scenario; rows with no `scenarios` array (or an empty one) still load for every scenario
+- `--scenario <scenario_id>`: restrict imports to manifest `data` rows for that browser scenario. With `--scenario default`, rows with no `scenarios` array (or an empty one) are included along with rows tagged `default`. With any other scenario, only rows explicitly tagged for that scenario are included. Omitting `--scenario` preserves legacy CLI behavior and imports all `load=true` rows.
 - `-i, --interval <seconds>`: minimum time between polls (default 3600)
 - `-v, --verbose`: extra debug output
 - `-d, --dry-run`: log actions without uploading to the FHIR server
 - `--audit-event-system` / `--audit-event-code`: match and create the import AuditEvent type (defaults match the examples above)
+
+### CQL Library imports
+
+For manifest rows with `loader: "cql-as-fhir-library"`, the CLI now matches the browser app by reading the CQL `library <name> version '<version>'` declaration and uploading the primary FHIR `Library` resource to `Library/<name>` with that version. For backwards compatibility, when the legacy manifest-derived id differs from the CQL library name, the CLI also uploads a compatibility alias at the old `Library/<manifest-name>` id. If a CQL file has no parseable library declaration, the CLI keeps the previous behavior and uses the manifest-derived id and `item.version || "0.0.0"`.
+
+## CQL Evaluation
+
+Evaluate a CQL Library already loaded on a FHIR server:
+
+```sh
+fhir-controller cql evaluate http://localhost:8080/fhir HelloWorld Patient/cfsb1703736930464
+fhir-controller cql evaluate http://localhost:8080/fhir Basic-Statin-Artifact cfsb1703736930464
+```
+
+The command POSTs the same FHIR `Parameters` shape as the browser app to `Library/<library_id>/$evaluate`, using a single `subject` parameter with `valueString` set to the subject argument.
 
 ## Terminology Imports
 

@@ -1,45 +1,151 @@
-name: latest-amd64
+---
 kind: pipeline
 type: docker
+name: build-amd64
 platform:
   arch: amd64
   os: linux
+
+trigger:
+  event:
+    - push
+    - tag
+
 steps:
-  - name: publish
+  - name: publish-branch
     image: plugins/docker
+    when:
+      event:
+        - push
+      branch:
+        exclude:
+          - main
     settings:
-      repo: p3000/fhir-controller-cli
-      tags:
-        - ${DRONE_COMMIT_BRANCH}-linux-amd64
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
+      repo: p3000/fhir-controller-cli
+      tags:
+        - ${DRONE_COMMIT_BRANCH//\//-}-linux-amd64 
+      cache_from:
+        - p3000/fhir-controller-cli:${DRONE_COMMIT_BRANCH//\//-}-linux-amd64
+        - p3000/fhir-controller-cli:latest-linux-amd64
+
+  - name: publish-main
+    image: plugins/docker
+    when:
+      event:
+        - push
+      branch:
+        - main
+    settings:
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      repo: p3000/fhir-controller-cli
+      tags:
+        - main-linux-amd64
+        - latest-linux-amd64
+      cache_from:
+        - p3000/fhir-controller-cli:${DRONE_COMMIT_BRANCH//\//-}-linux-amd64
+        - p3000/fhir-controller-cli:latest-linux-amd64
+
+  - name: publish-tag
+    image: plugins/docker
+    when:
+      event:
+        - tag
+    settings:
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      repo: p3000/fhir-controller-cli
+      tags:
+        - ${DRONE_TAG}-linux-amd64
+      cache_from:
+        - p3000/fhir-controller-cli:${DRONE_COMMIT_BRANCH//\//-}-linux-amd64
+        - p3000/fhir-controller-cli:latest-linux-amd64
 ---
-name: latest-arm64
 kind: pipeline
 type: docker
+name: build-arm64
 platform:
   arch: arm64
   os: linux
+
+trigger:
+  event:
+    - push
+    - tag
+
 steps:
-  - name: publish
+  - name: publish-branch
     image: plugins/docker
+    when:
+      event:
+        - push
+      branch:
+        exclude:
+          - main
     settings:
-      repo: p3000/fhir-controller-cli
-      tags:
-        - ${DRONE_COMMIT_BRANCH}-linux-arm64
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
+      repo: p3000/fhir-controller-cli
+      tags:
+        - ${DRONE_COMMIT_BRANCH//\//-}-linux-arm64
+      cache_from:
+        - p3000/fhir-controller-cli:${DRONE_COMMIT_BRANCH//\//-}-linux-arm64
+        - p3000/fhir-controller-cli:latest-linux-arm64
+
+  - name: publish-main
+    image: plugins/docker
+    when:
+      event:
+        - push
+      branch:
+        - main
+    settings:
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      repo: p3000/fhir-controller-cli
+      tags:
+        - main-linux-arm64
+        - latest-linux-arm64
+      cache_from:
+        - p3000/fhir-controller-cli:${DRONE_COMMIT_BRANCH//\//-}-linux-arm64
+        - p3000/fhir-controller-cli:latest-linux-arm64
+
+  - name: publish-tag
+    image: plugins/docker
+    when:
+      event:
+        - tag
+    settings:
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      repo: p3000/fhir-controller-cli
+      tags:
+        - ${DRONE_TAG}-linux-arm64
+      cache_from:
+        - p3000/fhir-controller-cli:${DRONE_COMMIT_BRANCH//\//-}-linux-arm64
+        - p3000/fhir-controller-cli:latest-linux-arm64
+
 ---
-name: manifest
+name: manifest-latest
 kind: pipeline
 type: docker
 depends_on:
-  - latest-amd64
-  - latest-arm64
+  - build-amd64
+  - build-arm64
 steps:
   - name: publish-manifest
     image: plugins/manifest
@@ -49,14 +155,41 @@ steps:
       password:
         from_secret: docker_password
       target: p3000/fhir-controller-cli:latest
-      template: p3000/fhir-controller-cli:master-OS-ARCH
+      template: p3000/fhir-controller-cli:main-OS-ARCH
       platforms:
         - linux/amd64
         - linux/arm64
-      exclude: [master]
 trigger:
+  event:
+    - push
   branch:
     include:
-      - master
+      - main
+  status:
+    - success
+
+---
+name: manifest-tag
+kind: pipeline
+type: docker
+depends_on:
+  - build-amd64
+  - build-arm64
+steps:
+  - name: publish-manifest
+    image: plugins/manifest
+    settings:
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      target: "p3000/fhir-controller-cli:${DRONE_TAG}"
+      template: "p3000/fhir-controller-cli:${DRONE_TAG}-OS-ARCH"
+      platforms:
+        - linux/amd64
+        - linux/arm64
+trigger:
+  event:
+    - tag
   status:
     - success

@@ -7,6 +7,16 @@ import { fileURLToPath } from 'url';
 import axios from 'axios';
 import type { Bundle, AuditEvent } from 'fhir/r4';
 
+interface CqlLibraryInfo {
+	libraryName: string;
+	version: string;
+}
+
+type ResetDriver = 'hapi' | 'wildfhir';
+
+const VALID_STACK_DRIVERS = ['generic', 'hapi', 'wildfhir', 'fhircandle'];
+const VALID_STACK_LOADERS = ['fhir-bundle', 'cql-as-fhir-library'];
+
 function resolveUserFilePath(input: string): string {
 	const trimmed = input.trim();
 	if (trimmed.startsWith('~/')) {
@@ -28,6 +38,7 @@ export class ImportUtilities {
 	/** After POSTing an import AuditEvent, search may lag; direct GET this URL until search finds matches. */
 	private lastImportAuditEventDirectReadUrl: string | null = null;
 	private loggedSearchLagHint: boolean = false;
+	private loggedStackWarningKeys = new Set<string>();
 
 	constructor(dryRun: boolean = false, debug: boolean = false) {
 		this.dryRun = dryRun;
@@ -56,6 +67,96 @@ export class ImportUtilities {
 
 	private normalizeFhirBaseUrl(fhirBaseUrl: string): string {
 		return fhirBaseUrl.replace(/\/*$/, '');
+	}
+
+	cqlEvaluateUrlFor(fhirBaseUrl: string, libraryId: string): string {
+		const base = this.normalizeFhirBaseUrl(fhirBaseUrl);
+		return `${base}/Library/${encodeURIComponent(libraryId)}/$evaluate`;
+	}
+
+	buildEvaluateParameters(subject: string): any {
+		return {
+			resourceType: 'Parameters',
+			parameter: [
+				{
+					name: 'subject',
+					valueString: subject,
+				},
+			],
+		};
+	}
+
+	async evaluateCqlLibrary(fhirBaseUrl: string, libraryId: string, subject: string): Promise<any> {
+		const url = this.cqlEvaluateUrlFor(fhirBaseUrl, libraryId);
+		const parameters = this.buildEvaluateParameters(subject);
+		const response = await axios.post(url, parameters, {
+			headers: {
+				'Content-Type': 'application/fhir+json',
+				Accept: 'application/fhir+json',
+			},
+		});
+		return response.data;
+	}
+
+	normalizeResetDriver(driver: string): ResetDriver {
+		const normalized = driver.trim().toLowerCase().replace(/_/g, '-');
+		switch (normalized) {
+			case 'hapi':
+			case 'hapi-fhir':
+				return 'hapi';
+			case 'wildfhir':
+			case 'wild-fhir':
+				return 'wildfhir';
+			default:
+				throw new Error(`Unsupported reset driver "${driver}". Use hapi-fhir or wild-fhir.`);
+		}
+	}
+
+	resetServerUrlFor(fhirBaseUrl: string, driver: string): string {
+		const base = this.normalizeFhirBaseUrl(fhirBaseUrl);
+		switch (this.normalizeResetDriver(driver)) {
+			case 'hapi':
+				return `${base}/$expunge`;
+			case 'wildfhir':
+				return `${base}/$purge-all`;
+		}
+	}
+
+	resetServerPayloadFor(driver: string): any {
+		switch (this.normalizeResetDriver(driver)) {
+			case 'hapi':
+				return {
+					resourceType: 'Parameters',
+					parameter: [
+						{
+							name: 'expungeEverything',
+							valueBoolean: true,
+						},
+					],
+				};
+			case 'wildfhir':
+				return {};
+		}
+	}
+
+	async resetServerData(fhirBaseUrl: string, driver: string): Promise<any> {
+		const url = this.resetServerUrlFor(fhirBaseUrl, driver);
+		const payload = this.resetServerPayloadFor(driver);
+		if (this.dryRun) {
+			return {
+				dryRun: true,
+				method: 'POST',
+				url,
+				payload,
+			};
+		}
+		const response = await axios.post(url, payload, {
+			headers: {
+				'Content-Type': 'application/fhir+json',
+				Accept: 'application/fhir+json',
+			},
+		});
+		return response.data;
 	}
 
 	private rememberPostedImportAuditEventUrl(fhirBaseUrl: string, response: { headers?: any; data?: AuditEvent }): void {
@@ -142,12 +243,99 @@ export class ImportUtilities {
 		}
 	}
 
+	getStackConfigurationWarnings(config: any): string[] {
+		const warnings: string[] = [];
+		const warn = (message: string) => warnings.push(message);
+
+		if (!config.fhir_base_url || typeof config.fhir_base_url !== 'string') {
+			warn('FHIR Base URL is missing or invalid.');
+		} else if (!config.fhir_base_url.match(/^https?:\/\/.+/)) {
+			warn('FHIR Base URL may be invalid; expected HTTP or HTTPS URL.');
+		}
+
+		if (!config.driver || !VALID_STACK_DRIVERS.includes(config.driver)) {
+			warn(`Driver "${config.driver || '(empty)'}" is not recognized; falling back to generic.`);
+		}
+
+		if (!config.data || !Array.isArray(config.data)) {
+			warn('No data files configured.');
+		} else {
+			const priorities = new Map<number, number[]>();
+			const scenarioIds = new Set([
+				'default',
+				...((Array.isArray(config.scenarios) ? config.scenarios : [])
+					.map((scenario: any) => scenario?.id)
+					.filter((id: unknown) => typeof id === 'string') as string[]),
+			]);
+
+			config.data.forEach((file: any, index: number) => {
+				const fileNum = index + 1;
+
+				if (!file.file || String(file.file).trim() === '') {
+					warn(`Data file ${fileNum}: File path is empty.`);
+				}
+				if (!file.name || String(file.name).trim() === '') {
+					warn(`Data file ${fileNum}: Name is empty.`);
+				}
+				if (file.loader && !VALID_STACK_LOADERS.includes(file.loader)) {
+					warn(`Data file ${fileNum}: Loader "${file.loader}" is not recognized.`);
+				}
+				if (file.loader === 'cql-as-fhir-library' && (!file.evaluate || !file.evaluate.id)) {
+					warn(`Data file ${fileNum} (${file.name || 'CQL'}) of type cql-as-fhir-library has no evaluation ID; CQL $evaluate will not be available.`);
+				}
+				if (typeof file.priority === 'number' && file.priority < 0) {
+					warn(`Data file ${fileNum}: Priority is negative (${file.priority}).`);
+				}
+
+				const prio = typeof file.priority === 'number' ? file.priority : 0;
+				if (!priorities.has(prio)) priorities.set(prio, []);
+				priorities.get(prio)!.push(fileNum);
+
+				(file.scenarios || []).forEach((scenarioId: string) => {
+					if (scenarioIds.size > 0 && !scenarioIds.has(scenarioId)) {
+						warn(`Data file ${fileNum}: Scenario "${scenarioId}" is not defined in scenarios.`);
+					}
+				});
+			});
+
+			priorities.forEach((indices, prio) => {
+				if (indices.length > 1) {
+					warn(`Multiple data files share priority ${prio} (files ${indices.join(', ')}); load order may be ambiguous.`);
+				}
+			});
+		}
+
+		(config.links || []).forEach((link: any, index: number) => {
+			if (!link.url || !String(link.url).match(/^https?:\/\/.+/)) {
+				warn(`Link ${index + 1} "${link.name || '(unnamed)'}": URL is missing or invalid.`);
+			}
+		});
+
+		return warnings;
+	}
+
+	logStackConfigurationWarnings(config: any, warningKey?: string): string[] {
+		const warnings = this.getStackConfigurationWarnings(config);
+		if (warningKey && this.loggedStackWarningKeys.has(warningKey)) {
+			return warnings;
+		}
+		if (warningKey) {
+			this.loggedStackWarningKeys.add(warningKey);
+		}
+		warnings.forEach(message => console.warn('[Stack Config]', message));
+		return warnings;
+	}
+
 	/**
 	 * When the manifest declares scenarios, ensure the given id exists in scenarios[].id.
+	 * The browser app always provides a synthetic "default" scenario.
 	 */
 	ensureScenarioValid(stack: any, scenarioId?: string): void {
 		const sid = scenarioId?.trim();
 		if (!sid) {
+			return;
+		}
+		if (sid === 'default') {
 			return;
 		}
 		const scenarios = stack?.scenarios;
@@ -165,13 +353,88 @@ export class ImportUtilities {
 	private dataRowMatchesScenario(item: any, scenarioId?: string): boolean {
 		const sid = scenarioId?.trim();
 		if (!sid) {
+			// Backwards compatibility: existing CLI usage without --scenario imports every load=true row.
 			return true;
 		}
 		const row = item?.scenarios;
-		if (!Array.isArray(row) || row.length === 0) {
-			return true;
+		if (sid === 'default') {
+			return !Array.isArray(row) || row.length === 0 || row.includes('default');
 		}
-		return row.includes(sid);
+		return Array.isArray(row) && row.includes(sid);
+	}
+
+	selectDataFilesForImport(stack: any, scenarioId?: string): any[] {
+		const loadTrue = (stack.data || []).filter((item: any) => item.load);
+		return loadTrue
+			.filter((item: any) => this.dataRowMatchesScenario(item, scenarioId))
+			.sort((a: any, b: any) => (a.priority ?? 0) - (b.priority ?? 0));
+	}
+
+	extractCqlLibraryNameAndVersion(content: string): CqlLibraryInfo | null {
+		const libraryRegex = /^library\s+"?([\w-]+)"?\s+version\s+'([^']+)'/m;
+		const match = content.match(libraryRegex);
+		if (!match) {
+			return null;
+		}
+		return { libraryName: match[1], version: match[2] };
+	}
+
+	legacyCqlLibraryIdFor(item: any, filePath: string): string {
+		return (item.name || filePath).replace(/[^A-Za-z0-9]/g, '');
+	}
+
+	buildCqlLibraryResource(
+		libraryId: string,
+		version: string,
+		description: string,
+		cqlContent: string,
+		fhirBaseUrl: string
+	): any {
+		return {
+			resourceType: 'Library',
+			type: {},
+			id: libraryId,
+			version,
+			name: libraryId,
+			title: libraryId,
+			status: 'active',
+			description,
+			url: `${fhirBaseUrl}/Library/${libraryId}`,
+			content: [
+				{
+					contentType: 'text/cql',
+					data: Buffer.from(cqlContent, 'utf8').toString('base64'),
+				},
+			],
+		};
+	}
+
+	private async putCqlLibraryResource(
+		fhirBaseUrl: string,
+		libraryId: string,
+		libraryResource: any,
+		itemName: string,
+		filePath: string,
+		label: string = 'Imported'
+	): Promise<void> {
+		if (this.dryRun) {
+			console.log(`[DRY RUN] Would PUT Library "${itemName}" (${filePath}) to ${fhirBaseUrl}/Library/${libraryId}`);
+			return;
+		}
+		try {
+			const postResp = await axios.put(`${fhirBaseUrl}/Library/${libraryId}`, libraryResource, {
+				headers: {
+					'Content-Type': 'application/fhir+json',
+					Accept: 'application/fhir+json',
+				},
+			});
+			console.info(`[SUCCESS] ${label} Library "${itemName}" (${filePath}) to ${fhirBaseUrl}/Library/${libraryId}: ${postResp.status} ${postResp.statusText}`);
+		} catch (err: any) {
+			console.error(`[FAILURE] Importing Library "${itemName}" (${filePath}) to ${fhirBaseUrl}/Library/${libraryId}:`, err?.response?.status, err?.response?.statusText);
+			if (err?.response?.data) {
+				console.error(JSON.stringify(err.response.data, null, 2));
+			}
+		}
 	}
 
 	private async readItemFileContent(
@@ -290,6 +553,7 @@ export class ImportUtilities {
 	): Promise<any> {
 		const manifestRef = stackJsonUrl.trim();
 		const stack = await this.loadManifest(manifestRef);
+		this.logStackConfigurationWarnings(stack, manifestRef);
 		this.ensureScenarioValid(stack, scenarioId);
 
 		const resolvedManifestLocalPath = this.isRemoteHttpManifest(manifestRef)
@@ -297,13 +561,12 @@ export class ImportUtilities {
 			: this.resolveManifestLocalPath(manifestRef);
 
 		const loadTrue = (stack.data || []).filter((item: any) => item.load);
-		const afterScenario = loadTrue.filter((item: any) => this.dataRowMatchesScenario(item, scenarioId));
+		const dataFiles = this.selectDataFilesForImport(stack, scenarioId);
 		if (scenarioId?.trim()) {
 			console.info(
-				`Scenario "${scenarioId.trim()}": importing ${afterScenario.length} of ${loadTrue.length} manifest rows with load=true (by priority).`
+				`Scenario "${scenarioId.trim()}": importing ${dataFiles.length} of ${loadTrue.length} manifest rows with load=true (by priority).`
 			);
 		}
-		const dataFiles = afterScenario.sort((a: any, b: any) => (a.priority ?? 0) - (b.priority ?? 0));
 
 		for (const item of dataFiles) {
 			const filePath = item.file;
@@ -345,41 +608,59 @@ export class ImportUtilities {
 				}
 			} else if (item.loader === 'cql-as-fhir-library') {
 				const cqlContent = typeof resourceData === 'string' ? resourceData : JSON.stringify(resourceData);
-				const libraryId = (item.name || filePath).replace(/[^A-Za-z0-9]/g, '');
-				const libraryResource = {
-					resourceType: 'Library',
-					type: {},
-					id: libraryId,
-					version: item.version || '0.0.0',
-					name: libraryId,
-					title: libraryId,
-					status: 'active',
-					description: item.description || '',
-					url: fhirBaseUrl + '/Library/' + libraryId,
-					content: [
-						{
-							contentType: 'text/cql',
-							data: Buffer.from(cqlContent, 'utf8').toString('base64'),
-						},
-					],
-				};
-				if (this.dryRun) {
-					console.log(`[DRY RUN] Would PUT Library "${item.name}" (${filePath}) to ${fhirBaseUrl}/Library`);
-				} else {
-					try {
-						const postResp = await axios.put(`${fhirBaseUrl}/Library/${libraryId}`, libraryResource, {
-							headers: {
-								'Content-Type': 'application/fhir+json',
-								Accept: 'application/fhir+json',
-							},
-						});
-						console.info(`[SUCCESS] Imported Library "${item.name}" (${filePath}) to ${fhirBaseUrl}/Library: ${postResp.status} ${postResp.statusText}`);
-					} catch (err: any) {
-						console.error(`[FAILURE] Importing Library "${item.name}" (${filePath}) to ${fhirBaseUrl}/Library:`, err?.response?.status, err?.response?.statusText);
-						if (err?.response?.data) {
-							console.error(JSON.stringify(err.response.data, null, 2));
-						}
+				const cqlInfo = this.extractCqlLibraryNameAndVersion(cqlContent);
+				const legacyLibraryId = this.legacyCqlLibraryIdFor(item, filePath);
+				const description = item.description || 'CQL Library loaded from file: ' + filePath;
+
+				if (cqlInfo) {
+					const browserLibraryResource = this.buildCqlLibraryResource(
+						cqlInfo.libraryName,
+						cqlInfo.version,
+						description,
+						cqlContent,
+						fhirBaseUrl
+					);
+					await this.putCqlLibraryResource(
+						fhirBaseUrl,
+						cqlInfo.libraryName,
+						browserLibraryResource,
+						item.name,
+						filePath
+					);
+
+					if (legacyLibraryId && legacyLibraryId !== cqlInfo.libraryName) {
+						const legacyResource = this.buildCqlLibraryResource(
+							legacyLibraryId,
+							item.version || '0.0.0',
+							description,
+							cqlContent,
+							fhirBaseUrl
+						);
+						await this.putCqlLibraryResource(
+							fhirBaseUrl,
+							legacyLibraryId,
+							legacyResource,
+							item.name,
+							filePath,
+							'Imported compatibility alias for'
+						);
 					}
+				} else {
+					console.warn(`[WARNING] Could not extract CQL library name and version from "${filePath}". Using legacy manifest-derived Library id "${legacyLibraryId}".`);
+					const legacyResource = this.buildCqlLibraryResource(
+						legacyLibraryId,
+						item.version || '0.0.0',
+						description,
+						cqlContent,
+						fhirBaseUrl
+					);
+					await this.putCqlLibraryResource(
+						fhirBaseUrl,
+						legacyLibraryId,
+						legacyResource,
+						item.name,
+						filePath
+					);
 				}
 			} else {
 				console.warn(`[SKIP] Loader "${item.loader}" not supported for "${item.name}" (${filePath})`);
