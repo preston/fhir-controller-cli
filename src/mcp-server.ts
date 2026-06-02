@@ -308,6 +308,11 @@ async function handleHttpMcpRequest(req: IncomingMessage, res: ServerResponse, e
 		return;
 	}
 
+	if (req.method === 'GET' && acceptsBrowserHtml(req)) {
+		writeMcpBrowserPage(res, endpointPath);
+		return;
+	}
+
 	if (req.method !== 'POST') {
 		res.setHeader('allow', 'POST');
 		writeJsonRpcError(res, 405, 'Method not allowed.');
@@ -363,6 +368,43 @@ function writeJsonRpcError(res: ServerResponse, statusCode: number, message: str
 		},
 		id: null,
 	}));
+}
+
+function acceptsBrowserHtml(req: IncomingMessage) {
+	const accept = req.headers.accept ?? '';
+	return accept.includes('text/html') && !accept.includes('text/event-stream');
+}
+
+function writeMcpBrowserPage(res: ServerResponse, endpointPath: string) {
+	const body = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FHIR Controller MCP</title>
+  <style>
+    body { color: #1f2933; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.5; margin: 3rem auto; max-width: 48rem; padding: 0 1.5rem; }
+    code { background: #f2f4f7; border-radius: 4px; padding: 0.125rem 0.25rem; }
+    .status { color: #0f7b4f; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <h1>FHIR Controller MCP</h1>
+  <p class="status">Server is running.</p>
+  <p>Configure your MCP client to use <code>${escapeHtml(endpointPath)}</code> on this host.</p>
+</body>
+</html>`;
+	res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+	res.end(body);
+}
+
+function escapeHtml(value: string) {
+	return value
+		.replaceAll('&', '&amp;')
+		.replaceAll('<', '&lt;')
+		.replaceAll('>', '&gt;')
+		.replaceAll('"', '&quot;')
+		.replaceAll("'", '&#39;');
 }
 
 function parseMcpCliOptions(args: string[]): ParsedMcpCliOptions {
