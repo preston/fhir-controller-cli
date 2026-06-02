@@ -47,6 +47,11 @@ docker run --rm --pull always p3000/fhir-controller-cli:latest terminology impor
 
 ## MCP Server
 
+The package includes an MCP server with two transports:
+
+- `stdio` for local MCP clients that launch the binary directly
+- Streamable HTTP for container deployments at `/mcp`
+
 ### Build from clone
 
 ```sh
@@ -55,9 +60,9 @@ npm install
 npm run build
 ```
 
-### Configure an MCP Client
+### Configure a Local Stdio MCP Client
 
-For JSON-style MCP clients, use:
+For JSON-style MCP clients that launch a local process, use:
 
 ```json
 {
@@ -69,6 +74,16 @@ For JSON-style MCP clients, use:
   }
 }
 ```
+
+### Run the HTTP MCP Server in Docker
+
+The Docker image keeps `fhir-controller` as its entrypoint. Start the MCP server by passing the `mcp` subcommand and publishing port `8002`:
+
+```sh
+docker run --rm --pull always -p 8002:8002 p3000/fhir-controller-cli:latest mcp
+```
+
+The HTTP server uses Streamable HTTP, binds to `0.0.0.0` by default for container port publishing, and defaults to port `8002`. Override with `--host`, `--port`, `--path`, or the `FHIR_CONTROLLER_MCP_HOST`, `FHIR_CONTROLLER_MCP_PORT`, and `FHIR_CONTROLLER_MCP_PATH` environment variables. The MCP server does not add authentication, so publish it only on trusted local interfaces or behind your own access controls.
 
 ### Tools and Safety
 
@@ -82,8 +97,6 @@ The MCP server exposes:
 - `fhir_terminology_import`
 
 Mutating tools default to `dryRun: true`; pass `dryRun: false` only when you intend to write to the target FHIR server.
-
-```
 
 # Available Commands
 

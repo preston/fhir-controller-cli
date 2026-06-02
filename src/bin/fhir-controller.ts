@@ -28,6 +28,37 @@ const cli = program.version(version)
 	.description('FHIR Controller CLI utilities.');
 
 cli
+	.command('mcp')
+	.description('Run the FHIR Controller MCP server.')
+	.option('--transport <transport>', 'MCP transport to use: http or stdio', 'http')
+	.option('--http', 'Run MCP over Streamable HTTP')
+	.option('--stdio', 'Run MCP over stdio')
+	.option('--host <host>', 'HTTP host to bind', process.env.FHIR_CONTROLLER_MCP_HOST ?? '0.0.0.0')
+	.option('--port <port>', 'HTTP port to bind', process.env.FHIR_CONTROLLER_MCP_PORT ?? process.env.MCP_PORT ?? process.env.PORT ?? '8002')
+	.option('--path <path>', 'HTTP MCP endpoint path', process.env.FHIR_CONTROLLER_MCP_PATH ?? '/mcp')
+	.action(async (options) => {
+		const { parseMcpPort, startMcpServer } = await import('../mcp-server.js');
+		let transport = String(options.transport).toLowerCase();
+		if (options.http) {
+			transport = 'http';
+		}
+		if (options.stdio) {
+			transport = 'stdio';
+		}
+		if (transport !== 'http' && transport !== 'stdio') {
+			console.error(`Invalid MCP transport: ${options.transport}. Must be "http" or "stdio".`);
+			process.exit(1);
+		}
+		await startMcpServer({
+			transport,
+			host: options.host,
+			port: parseMcpPort(options.port),
+			path: options.path,
+			installSignalHandlers: false,
+		});
+	});
+
+cli
 	.command('poll-auditevent-and-trigger-import')
 	.description('Polls the FHIR server for resources matching the query at the specified interval.')
 	.argument('<fhir_base_url>', 'URL of the FHIR server to poll')
