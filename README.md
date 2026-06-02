@@ -45,6 +45,46 @@ docker run --rm --pull always p3000/fhir-controller-cli:latest terminology impor
 docker run --rm --pull always p3000/fhir-controller-cli:latest terminology import /data/rxnorm.csv http://fhir.example.com/fhir /tmp/staging --system rxnorm --dry-run
 ```
 
+## MCP Server
+
+### Build from clone
+
+```sh
+cd /path/to/fhir-controller-cli
+npm install
+npm run build
+```
+
+### Configure an MCP Client
+
+For JSON-style MCP clients, use:
+
+```json
+{
+  "mcpServers": {
+    "fhir-controller": {
+      "command": "node",
+      "args": ["/path/to/fhir-controller-cli/build/bin/fhir-controller-mcp.js"]
+    }
+  }
+}
+```
+
+### Tools and Safety
+
+The MCP server exposes:
+
+- `fhir_controller_info`
+- `fhir_server_reset`
+- `fhir_cql_evaluate`
+- `fhir_synthea_upload`
+- `fhir_poll_auditevent_and_trigger_import`
+- `fhir_terminology_import`
+
+Mutating tools default to `dryRun: true`; pass `dryRun: false` only when you intend to write to the target FHIR server.
+
+```
+
 # Available Commands
 
 ## Server Reset
