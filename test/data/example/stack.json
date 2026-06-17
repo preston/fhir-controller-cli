@@ -1,0 +1,32 @@
+{
+  "fhir_base_url": "http://127.0.0.1:8080/fhir/",
+  "driver": "hapi",
+  "scenarios": [
+    {
+      "id": "default",
+      "name": "Default fixture load",
+      "description": "Small CLI test load with one FHIR transaction bundle and one CQL library."
+    }
+  ],
+  "data": [
+    {
+      "file": "fhir/Patient 1 - Adrian Allen1.json",
+      "name": "Patient 1 - Adrian Allen",
+      "loader": "fhir-bundle",
+      "load": true,
+      "priority": 10,
+      "scenarios": ["default"]
+    },
+    {
+      "file": "cql/HelloWorld.cql",
+      "name": "HelloWorld",
+      "loader": "cql-as-fhir-library",
+      "load": true,
+      "priority": 20,
+      "scenarios": ["default"],
+      "evaluate": {
+        "id": "HelloWorld"
+      }
+    }
+  ]
+}

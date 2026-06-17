@@ -1,0 +1,1497 @@
+{
+    "resourceType": "Bundle",
+    "type": "transaction",
+    "entry": [
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Patient/cfsb1703736930464",
+            "resource": {
+                "resourceType": "Patient",
+                "id": "cfsb1703736930464",
+                "name": [
+                    {
+                        "given": [
+                            "Adrian"
+                        ],
+                        "family": "Allen1"
+                    }
+                ],
+                "gender": "male",
+                "birthDate": "1970-01-18",
+                "maritalStatus": {
+                    "coding": [
+                        {
+                            "code": "M",
+                            "system": "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus",
+                            "display": "Married"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Patient/cfsb1703736930464"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Condition/cfsb1703737461204",
+            "resource": {
+                "resourceType": "Condition",
+                "id": "cfsb1703737461204",
+                "clinicalStatus": {
+                    "coding": [
+                        {
+                            "code": "active",
+                            "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                            "display": "Active"
+                        }
+                    ]
+                },
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "code": "64905009",
+                            "system": "http://snomed.info/sct",
+                            "display": "Paranoid schizophrenia"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Condition/cfsb1703737461204"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Condition/cfsb1703737508723",
+            "resource": {
+                "resourceType": "Condition",
+                "id": "cfsb1703737508723",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "code": "13746004",
+                            "system": "http://snomed.info/sct",
+                            "display": "Bipolar disorder"
+                        }
+                    ]
+                },
+                "clinicalStatus": {
+                    "coding": [
+                        {
+                            "code": "active",
+                            "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                            "display": "Active"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Condition/cfsb1703737508723"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Condition/cfsb1703737550846",
+            "resource": {
+                "resourceType": "Condition",
+                "id": "cfsb1703737550846",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "code": "35489007",
+                            "system": "http://snomed.info/sct",
+                            "display": "Depression"
+                        }
+                    ]
+                },
+                "clinicalStatus": {
+                    "coding": [
+                        {
+                            "code": "active",
+                            "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                            "display": "Active"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Condition/cfsb1703737550846"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Condition/cfsb1703737588959",
+            "resource": {
+                "resourceType": "Condition",
+                "id": "cfsb1703737588959",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "code": "47505003",
+                            "system": "http://snomed.info/sct",
+                            "display": "Post-traumatic stress disorder"
+                        }
+                    ]
+                },
+                "clinicalStatus": {
+                    "coding": [
+                        {
+                            "code": "active",
+                            "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                            "display": "Active"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Condition/cfsb1703737588959"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Condition/cfsb1703737644705",
+            "resource": {
+                "resourceType": "Condition",
+                "id": "cfsb1703737644705",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "code": "33449004",
+                            "system": "http://snomed.info/sct",
+                            "display": "Personality disorder"
+                        }
+                    ]
+                },
+                "clinicalStatus": {
+                    "coding": [
+                        {
+                            "code": "active",
+                            "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                            "display": "Active"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Condition/cfsb1703737644705"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Condition/cfsb1703737796116",
+            "resource": {
+                "resourceType": "Condition",
+                "id": "cfsb1703737796116",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "code": "199229001",
+                            "system": "http://snomed.info/sct",
+                            "display": "Pre-existing type 1 diabetes mellitus"
+                        }
+                    ]
+                },
+                "clinicalStatus": {
+                    "coding": [
+                        {
+                            "code": "active",
+                            "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                            "display": "Active"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Condition/cfsb1703737796116"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Condition/cfsb1703737883899",
+            "resource": {
+                "resourceType": "Condition",
+                "id": "cfsb1703737883899",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "code": "698247007",
+                            "system": "http://snomed.info/sct",
+                            "display": "Cardiac arrhythmia"
+                        }
+                    ]
+                },
+                "clinicalStatus": {
+                    "coding": [
+                        {
+                            "code": "active",
+                            "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                            "display": "Active"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Condition/cfsb1703737883899"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Condition/cfsb1703737916968",
+            "resource": {
+                "resourceType": "Condition",
+                "id": "cfsb1703737916968",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "code": "282825002",
+                            "system": "http://snomed.info/sct",
+                            "display": "Paroxysmal atrial fibrillation"
+                        }
+                    ]
+                },
+                "clinicalStatus": {
+                    "coding": [
+                        {
+                            "code": "active",
+                            "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                            "display": "Active"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Condition/cfsb1703737916968"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Condition/cfsb1703738001276",
+            "resource": {
+                "resourceType": "Condition",
+                "id": "cfsb1703738001276",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "code": "410429000",
+                            "system": "http://snomed.info/sct",
+                            "display": "Cardiac arrest"
+                        }
+                    ]
+                },
+                "clinicalStatus": {
+                    "coding": [
+                        {
+                            "code": "active",
+                            "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                            "display": "Active"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Condition/cfsb1703738001276"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Condition/cfsb1703738038388",
+            "resource": {
+                "resourceType": "Condition",
+                "id": "cfsb1703738038388",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "code": "59621000",
+                            "system": "http://snomed.info/sct",
+                            "display": "Essential hypertension"
+                        }
+                    ]
+                },
+                "clinicalStatus": {
+                    "coding": [
+                        {
+                            "code": "active",
+                            "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                            "display": "Active"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Condition/cfsb1703738038388"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Condition/cfsb1703738081572",
+            "resource": {
+                "resourceType": "Condition",
+                "id": "cfsb1703738081572",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "code": "414916001",
+                            "system": "http://snomed.info/sct",
+                            "display": "Obesity"
+                        }
+                    ]
+                },
+                "clinicalStatus": {
+                    "coding": [
+                        {
+                            "code": "active",
+                            "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                            "display": "Active"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Condition/cfsb1703738081572"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Condition/cfsb1703738120499",
+            "resource": {
+                "resourceType": "Condition",
+                "id": "cfsb1703738120499",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "code": "1751000119100",
+                            "system": "http://snomed.info/sct",
+                            "display": "Acute exacerbation of COPD with asthma"
+                        }
+                    ]
+                },
+                "clinicalStatus": {
+                    "coding": [
+                        {
+                            "code": "active",
+                            "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                            "display": "Active"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Condition/cfsb1703738120499"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Condition/cfsb1703738198170",
+            "resource": {
+                "resourceType": "Condition",
+                "id": "cfsb1703738198170",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "code": "373621006",
+                            "system": "http://snomed.info/sct",
+                            "display": "Chronic pain syndrome"
+                        }
+                    ]
+                },
+                "clinicalStatus": {
+                    "coding": [
+                        {
+                            "code": "active",
+                            "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                            "display": "Active"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Condition/cfsb1703738198170"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Condition/cfsb1703738234647",
+            "resource": {
+                "resourceType": "Condition",
+                "id": "cfsb1703738234647",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "code": "134407002",
+                            "system": "http://snomed.info/sct",
+                            "display": "Chronic back pain"
+                        }
+                    ]
+                },
+                "clinicalStatus": {
+                    "coding": [
+                        {
+                            "code": "active",
+                            "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                            "display": "Active"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Condition/cfsb1703738234647"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Condition/cfsb1703738280108",
+            "resource": {
+                "resourceType": "Condition",
+                "id": "cfsb1703738280108",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "code": "11861801000119106",
+                            "system": "http://snomed.info/sct",
+                            "display": "Rupture of anterior cruciate ligament of left knee"
+                        }
+                    ]
+                },
+                "clinicalStatus": {
+                    "coding": [
+                        {
+                            "code": "active",
+                            "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                            "display": "Active"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Condition/cfsb1703738280108"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Condition/cfsb1703738431303",
+            "resource": {
+                "resourceType": "Condition",
+                "id": "cfsb1703738431303",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "code": "472916000",
+                            "system": "http://snomed.info/sct",
+                            "display": "Toxic metabolic encephalopathy"
+                        }
+                    ]
+                },
+                "clinicalStatus": {
+                    "coding": [
+                        {
+                            "code": "active",
+                            "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                            "display": "Active"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Condition/cfsb1703738431303"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Condition/cfsb1703738461981",
+            "resource": {
+                "resourceType": "Condition",
+                "id": "cfsb1703738461981",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "code": "68566005",
+                            "system": "http://snomed.info/sct",
+                            "display": "Urinary tract infection"
+                        }
+                    ]
+                },
+                "clinicalStatus": {
+                    "coding": [
+                        {
+                            "code": "active",
+                            "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                            "display": "Active"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Condition/cfsb1703738461981"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Condition/cfsb1703738497908",
+            "resource": {
+                "resourceType": "Condition",
+                "id": "cfsb1703738497908",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "code": "43339004",
+                            "system": "http://snomed.info/sct",
+                            "display": "Hypokalaemia"
+                        }
+                    ]
+                },
+                "clinicalStatus": {
+                    "coding": [
+                        {
+                            "code": "active",
+                            "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                            "display": "Active"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Condition/cfsb1703738497908"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/AllergyIntolerance/cfsb1703738542195",
+            "resource": {
+                "resourceType": "AllergyIntolerance",
+                "id": "cfsb1703738542195",
+                "patient": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "code": "387494007",
+                            "system": "http://snomed.info/sct",
+                            "display": "Codeine"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "AllergyIntolerance/cfsb1703738542195"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/AllergyIntolerance/cfsb1703738594074",
+            "resource": {
+                "resourceType": "AllergyIntolerance",
+                "id": "cfsb1703738594074",
+                "patient": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "code": "372671002",
+                            "system": "http://snomed.info/sct",
+                            "display": "Hydrocodone"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "AllergyIntolerance/cfsb1703738594074"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/AllergyIntolerance/cfsb1703738644304",
+            "resource": {
+                "resourceType": "AllergyIntolerance",
+                "id": "cfsb1703738644304",
+                "patient": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "code": "386858008",
+                            "system": "http://snomed.info/sct",
+                            "display": "Tramadol"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "AllergyIntolerance/cfsb1703738644304"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/AllergyIntolerance/cfsb1703738677967",
+            "resource": {
+                "resourceType": "AllergyIntolerance",
+                "id": "cfsb1703738677967",
+                "patient": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "code": "16403005",
+                            "system": "http://snomed.info/sct",
+                            "display": "Non-steroidal anti-inflammatory agent"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "AllergyIntolerance/cfsb1703738677967"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Observation/cfsb1703740134495",
+            "resource": {
+                "resourceType": "Observation",
+                "id": "cfsb1703740134495",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "registered",
+                "code": {
+                    "coding": [
+                        {
+                            "code": "LP133912-8",
+                            "system": "http://loinc.org",
+                            "display": "Unemployed"
+                        }
+                    ]
+                },
+                "category": [
+                    {
+                        "coding": [
+                            {
+                                "code": "social-history",
+                                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                                "display": "Social History"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Observation/cfsb1703740134495"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Observation/cfsb1703740273325",
+            "resource": {
+                "resourceType": "Observation",
+                "id": "cfsb1703740273325",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "registered",
+                "code": {
+                    "coding": [
+                        {
+                            "code": "LP74101-4",
+                            "system": "http://loinc.org",
+                            "display": "History of present alcohol &or substance abuse"
+                        }
+                    ]
+                },
+                "valueBoolean": false,
+                "category": [
+                    {
+                        "coding": [
+                            {
+                                "code": "social-history",
+                                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                                "display": "Social History"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Observation/cfsb1703740273325"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Observation/cfsb1703740348699",
+            "resource": {
+                "resourceType": "Observation",
+                "id": "cfsb1703740348699",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "registered",
+                "code": {
+                    "coding": [
+                        {
+                            "code": "LA24145-7",
+                            "system": "http://loinc.org",
+                            "display": "General-Neglect or Abuse Suspected"
+                        }
+                    ]
+                },
+                "valueBoolean": false,
+                "category": [
+                    {
+                        "coding": [
+                            {
+                                "code": "social-history",
+                                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                                "display": "Social History"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Observation/cfsb1703740348699"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Observation/cfsb1703740420936",
+            "resource": {
+                "resourceType": "Observation",
+                "id": "cfsb1703740420936",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "registered",
+                "category": [
+                    {
+                        "coding": [
+                            {
+                                "code": "laboratory",
+                                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                                "display": "Laboratory"
+                            }
+                        ]
+                    }
+                ],
+                "code": {
+                    "coding": [
+                        {
+                            "code": "LP32744-2",
+                            "system": "http://loinc.org",
+                            "display": "Urinalysis"
+                        }
+                    ]
+                },
+                "interpretation": [
+                    {
+                        "coding": [
+                            {
+                                "code": "N",
+                                "system": "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation",
+                                "display": "Normal"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Observation/cfsb1703740420936"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Observation/cfsb1703740510164",
+            "resource": {
+                "resourceType": "Observation",
+                "id": "cfsb1703740510164",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "registered",
+                "code": {
+                    "coding": [
+                        {
+                            "code": "LP14129-8",
+                            "system": "http://loinc.org",
+                            "display": "Comprehensive metabolic 1998 panel"
+                        }
+                    ]
+                },
+                "category": [
+                    {
+                        "coding": [
+                            {
+                                "code": "laboratory",
+                                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                                "display": "Laboratory"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Observation/cfsb1703740510164"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Observation/cfsb1703740652165",
+            "resource": {
+                "resourceType": "Observation",
+                "id": "cfsb1703740652165",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "registered",
+                "category": [
+                    {
+                        "coding": [
+                            {
+                                "code": "laboratory",
+                                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                                "display": "Laboratory"
+                            }
+                        ]
+                    }
+                ],
+                "code": {
+                    "coding": [
+                        {
+                            "code": "LP31978-7",
+                            "system": "http://loinc.org",
+                            "display": "Albumin"
+                        }
+                    ]
+                },
+                "valueQuantity": {
+                    "value": 3.2,
+                    "unit": "g/dL"
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Observation/cfsb1703740652165"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Observation/cfsb1703740783442",
+            "resource": {
+                "resourceType": "Observation",
+                "id": "cfsb1703740783442",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "registered",
+                "category": [
+                    {
+                        "coding": [
+                            {
+                                "code": "laboratory",
+                                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                                "display": "Laboratory"
+                            }
+                        ]
+                    }
+                ],
+                "code": {
+                    "coding": [
+                        {
+                            "code": "34402-8",
+                            "system": "http://loinc.org",
+                            "display": "Coproporphyrin/Hemoglobin [Mass Ratio] in Red Blood Cells"
+                        }
+                    ]
+                },
+                "valueQuantity": {
+                    "value": 13.4,
+                    "unit": "g/dL"
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Observation/cfsb1703740783442"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Observation/cfsb1703740908864",
+            "resource": {
+                "resourceType": "Observation",
+                "id": "cfsb1703740908864",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "registered",
+                "code": {
+                    "coding": [
+                        {
+                            "code": "LA24328-9",
+                            "system": "http://loinc.org",
+                            "display": "MRI scan"
+                        }
+                    ]
+                },
+                "category": [
+                    {
+                        "coding": [
+                            {
+                                "code": "imaging",
+                                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                                "display": "Imaging"
+                            }
+                        ]
+                    }
+                ],
+                "valueString": "no acute stroke"
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Observation/cfsb1703740908864"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Observation/cfsb1703741062170",
+            "resource": {
+                "resourceType": "Observation",
+                "id": "cfsb1703741062170",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "registered",
+                "category": [
+                    {
+                        "coding": [
+                            {
+                                "code": "imaging",
+                                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                                "display": "Imaging"
+                            }
+                        ]
+                    }
+                ],
+                "code": {
+                    "coding": [
+                        {
+                            "code": "LA15394-2",
+                            "system": "http://loinc.org",
+                            "display": "Chest radiograph"
+                        }
+                    ]
+                },
+                "interpretation": [
+                    {
+                        "coding": [
+                            {
+                                "code": "N",
+                                "system": "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation",
+                                "display": "Normal"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Observation/cfsb1703741062170"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Observation/cfsb1703741136744",
+            "resource": {
+                "resourceType": "Observation",
+                "id": "cfsb1703741136744",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "registered",
+                "category": [
+                    {
+                        "coding": [
+                            {
+                                "code": "procedure",
+                                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                                "display": "Procedure"
+                            }
+                        ]
+                    }
+                ],
+                "code": {
+                    "coding": [
+                        {
+                            "code": "LP6244-0",
+                            "system": "http://loinc.org",
+                            "display": "EKG"
+                        }
+                    ]
+                },
+                "interpretation": [
+                    {
+                        "coding": [
+                            {
+                                "code": "A",
+                                "system": "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation",
+                                "display": "Abnormal"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Observation/cfsb1703741136744"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Observation/cfsb1703741201257",
+            "resource": {
+                "resourceType": "Observation",
+                "id": "cfsb1703741201257",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "registered",
+                "code": {
+                    "coding": [
+                        {
+                            "code": "LA24330-5",
+                            "system": "http://loinc.org",
+                            "display": "Echocardiogram"
+                        }
+                    ]
+                },
+                "interpretation": [
+                    {
+                        "coding": [
+                            {
+                                "code": "N",
+                                "system": "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation",
+                                "display": "Normal"
+                            }
+                        ]
+                    }
+                ],
+                "category": [
+                    {
+                        "coding": [
+                            {
+                                "code": "procedure",
+                                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                                "display": "Procedure"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Observation/cfsb1703741201257"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/Procedure/cfsb1703741435319",
+            "resource": {
+                "resourceType": "Procedure",
+                "id": "cfsb1703741435319",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "completed",
+                "code": {
+                    "coding": [
+                        {
+                            "code": "53587000",
+                            "system": "http://snomed.info/sct",
+                            "display": "Irrigation of indwelling urinary catheter"
+                        }
+                    ]
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "Procedure/cfsb1703741435319"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/MedicationRequest/cfsb1714698505703",
+            "resource": {
+                "resourceType": "MedicationRequest",
+                "id": "cfsb1714698505703",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "active",
+                "intent": "order",
+                "medication": {
+                    "concept": {
+                        "coding": [
+                            {
+                                "code": "325278007",
+                                "system": "http://snomed.info/sct",
+                                "display": "Metformin hydrochloride 500 mg oral tablet"
+                            }
+                        ]
+                    }
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "MedicationRequest/cfsb1714698505703"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/MedicationRequest/cfsb1714698878707",
+            "resource": {
+                "resourceType": "MedicationRequest",
+                "id": "cfsb1714698878707",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "active",
+                "intent": "original-order",
+                "medication": {
+                    "concept": {
+                        "coding": [
+                            {
+                                "code": "409226009",
+                                "system": "http://snomed.info/sct",
+                                "display": "Metoprolol tartrate 25 mg oral tablet"
+                            }
+                        ]
+                    }
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "MedicationRequest/cfsb1714698878707"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/MedicationRequest/cfsb1714699024271",
+            "resource": {
+                "resourceType": "MedicationRequest",
+                "id": "cfsb1714699024271",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "active",
+                "intent": "order",
+                "medication": {
+                    "concept": {
+                        "coding": [
+                            {
+                                "code": "376843007",
+                                "system": "http://snomed.info/sct",
+                                "display": "Diltiazem maleate 240 mg oral tablet"
+                            }
+                        ]
+                    }
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "MedicationRequest/cfsb1714699024271"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/MedicationRequest/cfsb1714699162446",
+            "resource": {
+                "resourceType": "MedicationRequest",
+                "id": "cfsb1714699162446",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "active",
+                "intent": "original-order",
+                "medication": {
+                    "concept": {
+                        "coding": [
+                            {
+                                "code": "704474000",
+                                "system": "http://snomed.info/sct",
+                                "display": "Rivaroxaban 20 mg oral tablet"
+                            }
+                        ]
+                    }
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "MedicationRequest/cfsb1714699162446"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/MedicationRequest/cfsb1714699234920",
+            "resource": {
+                "resourceType": "MedicationRequest",
+                "id": "cfsb1714699234920",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "active",
+                "intent": "original-order",
+                "medication": {
+                    "concept": {
+                        "coding": [
+                            {
+                                "code": "765922006",
+                                "system": "http://snomed.info/sct",
+                                "display": "Tamsulosin hydrochloride 400 microgram prolonged-release oral capsule"
+                            }
+                        ]
+                    }
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "MedicationRequest/cfsb1714699234920"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/MedicationRequest/cfsb1714699335031",
+            "resource": {
+                "resourceType": "MedicationRequest",
+                "id": "cfsb1714699335031",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "active",
+                "intent": "original-order",
+                "medication": {
+                    "concept": {
+                        "coding": [
+                            {
+                                "code": "375291005",
+                                "system": "http://snomed.info/sct",
+                                "display": "Oxycodone hydrochloride 15 mg oral tablet"
+                            }
+                        ]
+                    }
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "MedicationRequest/cfsb1714699335031"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/MedicationRequest/cfsb1714699391575",
+            "resource": {
+                "resourceType": "MedicationRequest",
+                "id": "cfsb1714699391575",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "active",
+                "intent": "original-order",
+                "medication": {
+                    "concept": {
+                        "coding": [
+                            {
+                                "code": "376816002",
+                                "system": "http://snomed.info/sct",
+                                "display": "Benzatropine mesilate 1 mg oral tablet"
+                            }
+                        ]
+                    }
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "MedicationRequest/cfsb1714699391575"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/MedicationRequest/cfsb1714699494339",
+            "resource": {
+                "resourceType": "MedicationRequest",
+                "id": "cfsb1714699494339",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "active",
+                "intent": "original-order",
+                "medication": {
+                    "concept": {
+                        "coding": [
+                            {
+                                "code": "321813009",
+                                "system": "http://snomed.info/sct",
+                                "display": "Doxepin (as doxepin hydrochloride) 50 mg oral capsule"
+                            }
+                        ]
+                    }
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "MedicationRequest/cfsb1714699494339"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/MedicationRequest/cfsb1714699559132",
+            "resource": {
+                "resourceType": "MedicationRequest",
+                "id": "cfsb1714699559132",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "active",
+                "intent": "original-order",
+                "medication": {
+                    "concept": {
+                        "coding": [
+                            {
+                                "code": "375509004",
+                                "system": "http://snomed.info/sct",
+                                "display": "Haloperidol 2 mg oral tablet"
+                            }
+                        ]
+                    }
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "MedicationRequest/cfsb1714699559132"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/MedicationRequest/cfsb1714699607470",
+            "resource": {
+                "resourceType": "MedicationRequest",
+                "id": "cfsb1714699607470",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "active",
+                "medication": {
+                    "concept": {
+                        "coding": [
+                            {
+                                "code": "83945003",
+                                "system": "http://snomed.info/sct",
+                                "display": "Hydroxyzine hydrochloride"
+                            }
+                        ]
+                    }
+                },
+                "intent": "original-order",
+                "dosageInstruction": [
+                    {
+                        "text": "15 mg"
+                    }
+                ]
+            },
+            "request": {
+                "method": "PUT",
+                "url": "MedicationRequest/cfsb1714699607470"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/MedicationRequest/cfsb1714699739475",
+            "resource": {
+                "resourceType": "MedicationRequest",
+                "id": "cfsb1714699739475",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "active",
+                "intent": "original-order",
+                "medication": {
+                    "concept": {
+                        "coding": [
+                            {
+                                "code": "375113004",
+                                "system": "http://snomed.info/sct",
+                                "display": "Temazepam 15 mg oral capsule"
+                            }
+                        ]
+                    }
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "MedicationRequest/cfsb1714699739475"
+            }
+        },
+        {
+            "fullUrl": "http://clinfhir.com/fhir/MedicationRequest/cfsb1714699797899",
+            "resource": {
+                "resourceType": "MedicationRequest",
+                "id": "cfsb1714699797899",
+                "subject": {
+                    "reference": "Patient/cfsb1703736930464"
+                },
+                "status": "active",
+                "intent": "original-order",
+                "medication": {
+                    "concept": {
+                        "coding": [
+                            {
+                                "code": "377147002",
+                                "system": "http://snomed.info/sct",
+                                "display": "Lorazepam 500 microgram oral tablet"
+                            }
+                        ]
+                    }
+                }
+            },
+            "request": {
+                "method": "PUT",
+                "url": "MedicationRequest/cfsb1714699797899"
+            }
+        }
+    ]
+}
