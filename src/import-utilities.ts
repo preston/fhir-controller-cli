@@ -434,6 +434,7 @@ export class ImportUtilities {
 			if (err?.response?.data) {
 				console.error(JSON.stringify(err.response.data, null, 2));
 			}
+			throw err;
 		}
 	}
 
@@ -527,6 +528,9 @@ export class ImportUtilities {
 				if (this.verbose && error?.cause) {
 					console.error(error.cause);
 				}
+				if (exitAfterFirstCycle) {
+					throw error;
+				}
 			}
 
 			if (this.isCancelled) {
@@ -571,16 +575,14 @@ export class ImportUtilities {
 		for (const item of dataFiles) {
 			const filePath = item.file;
 			if (typeof filePath !== 'string' || !filePath.trim()) {
-				console.warn(`[SKIP] Manifest row "${item.name ?? '(no name)'}" has no file path.`);
-				continue;
+				throw new Error(`Manifest row "${item.name ?? '(no name)'}" has no file path.`);
 			}
 			let resourceData: any;
 
 			try {
 				resourceData = await this.readItemFileContent(manifestRef, resolvedManifestLocalPath, filePath);
 			} catch (e: any) {
-				console.error(`[FAILURE] Could not read data file for "${item.name}" (${filePath}):`, e?.message ?? e);
-				continue;
+				throw new Error(`Could not read data file for "${item.name}" (${filePath}): ${e?.message ?? e}`);
 			}
 			if (typeof resourceData === 'object') {
 				resourceData = JSON.stringify(resourceData);
@@ -604,6 +606,7 @@ export class ImportUtilities {
 						if (err?.response?.data) {
 							console.error(JSON.stringify(err.response.data, null, 2));
 						}
+						throw err;
 					}
 				}
 			} else if (item.loader === 'cql-as-fhir-library') {
@@ -663,7 +666,7 @@ export class ImportUtilities {
 					);
 				}
 			} else {
-				console.warn(`[SKIP] Loader "${item.loader}" not supported for "${item.name}" (${filePath})`);
+				throw new Error(`Loader "${item.loader}" not supported for "${item.name}" (${filePath})`);
 			}
 		}
 		console.info(`[SUCCESS] Imported ${dataFiles.length} resources to ${fhirBaseUrl}`);
