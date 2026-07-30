@@ -1,8 +1,10 @@
 // Author: Preston Lee
 
 import path from 'node:path';
+import fs from 'node:fs';
 import { exec, type ExecException } from 'node:child_process';
 import { describe, expect, test } from 'vitest';
+import { extractCqlLibraryNameAndVersion } from '../src/cql-library-metadata.js';
 import { ImportUtilities } from '../src/import-utilities.js';
 
 const testDir = import.meta.dirname;
@@ -145,15 +147,29 @@ describe('CQL Library import helpers', () => {
 
     test('extracts browser-compatible CQL library name and version', () => {
         const cql = `library "BrowserAlignedLibrary" version '1.2.3'\nusing FHIR version '4.0.1'`;
-        expect(new ImportUtilities().extractCqlLibraryNameAndVersion(cql)).toEqual({
+        expect(extractCqlLibraryNameAndVersion(cql)).toEqual({
             libraryName: 'BrowserAlignedLibrary',
             version: '1.2.3'
         });
     });
 
+    test('extracts library metadata from the HelloWorld fixture CQL', () => {
+        const cqlPath = path.join(testDir, 'data/example/cql/HelloWorld.cql');
+        const cql = fs.readFileSync(cqlPath, 'utf8');
+        expect(extractCqlLibraryNameAndVersion(cql)).toEqual({
+            libraryName: 'HelloWorld',
+            version: '1.0.0'
+        });
+    });
+
     test('returns null for CQL without a browser-parseable library declaration', () => {
         const cql = `library LegacyOnlyLibrary\nusing FHIR version '4.0.1'`;
-        expect(new ImportUtilities().extractCqlLibraryNameAndVersion(cql)).toBeNull();
+        expect(extractCqlLibraryNameAndVersion(cql)).toBeNull();
+    });
+
+    test('returns null for CQL with a blank version declaration', () => {
+        const cql = `library BlankVersionLibrary version '   '\nusing FHIR version '4.0.1'`;
+        expect(extractCqlLibraryNameAndVersion(cql)).toBeNull();
     });
 
     test('builds a browser-style FHIR Library resource from CQL metadata', () => {

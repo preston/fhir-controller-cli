@@ -341,7 +341,7 @@ describe('CLI against a live FHIR test server', () => {
 		expect(result.stdout.indexOf('/Library/BrowserAlignedLibrary')).toBeLessThan(result.stdout.indexOf('/Library/LegacyLibraryName'));
 	});
 
-	maybeTest('one-shot poll import falls back to legacy CQL Library id when no versioned declaration exists', async () => {
+	maybeTest('one-shot poll import fails when CQL has no versioned library declaration', async () => {
 		const auditEventCode = `cli-vitest-cql-legacy-${Date.now()}`;
 		const cqlPath = writeTextFile(
 			'legacy-library.cql',
@@ -379,10 +379,11 @@ describe('CLI against a live FHIR test server', () => {
 			auditEventCode,
 		]);
 
-		expect(result.code).toBe(0);
-		expect(result.stderr).toContain('Could not extract CQL library name and version');
-		expect(result.stderr).toContain('Using legacy manifest-derived Library id "LegacyLibraryName"');
-		expect(result.stdout).toContain('/Library/LegacyLibraryName');
+		expect(result.code).toBe(1);
+		expect(result.stderr).toContain('Error polling FHIR server.');
+		expect(result.stderr).toContain('Could not determine CQL library name and version');
+		expect(result.stderr).toContain('Import aborted');
+		expect(result.stdout).not.toContain('/Library/LegacyLibraryName');
 		expect(result.stdout).not.toContain('/Library/LegacyOnlyLibrary');
 	});
 

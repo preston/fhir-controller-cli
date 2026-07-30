@@ -96,9 +96,9 @@ fhir-controller poll-auditevent-and-trigger-import http://fhir.example.com/fhir 
 
 ### CQL Library Imports
 
-For manifest rows with `loader: "cql-as-fhir-library"`, the CLI reads the CQL `library <name> version '<version>'` declaration and uploads the primary FHIR `Library` resource to `Library/<name>` with that version.
+For manifest rows with `loader: "cql-as-fhir-library"`, the CLI compiles the CQL source with `@cqframework/cql` and reads the library `identifier` from the ELM AST (`library <name> version '<version>'`). It uploads the primary FHIR `Library` resource to `Library/<name>` with that version.
 
-For backwards compatibility, when the legacy manifest-derived id differs from the CQL library name, the CLI also uploads a compatibility alias at the old `Library/<manifest-name>` id. If a CQL file has no parseable library declaration, the CLI keeps the previous behavior and uses the manifest-derived id and `item.version || "0.0.0"`.
+For backwards compatibility, when the legacy manifest-derived id differs from the CQL library name, the CLI also uploads a compatibility alias at the old `Library/<manifest-name>` id using the same CQL-declared version. If a CQL file has no parseable `library <name> version '<version>'` declaration, the import fails with an error and no Library resource is uploaded. Manifest `version` values and defaults such as `"0.0.0"` are never used.
 
 ## CQL Evaluation
 

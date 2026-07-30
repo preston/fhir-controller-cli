@@ -5,12 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import axios from 'axios';
+import { extractCqlLibraryNameAndVersion } from './cql-library-metadata.js';
 import type { Bundle, AuditEvent } from './types/fhir-types.js';
-
-interface CqlLibraryInfo {
-	libraryName: string;
-	version: string;
-}
 
 type ResetDriver = 'hapi' | 'wildfhir';
 
@@ -370,15 +366,6 @@ export class ImportUtilities {
 			.sort((a: any, b: any) => (a.priority ?? 0) - (b.priority ?? 0));
 	}
 
-	extractCqlLibraryNameAndVersion(content: string): CqlLibraryInfo | null {
-		const libraryRegex = /^library\s+"?([\w-]+)"?\s+version\s+'([^']+)'/m;
-		const match = content.match(libraryRegex);
-		if (!match) {
-			return null;
-		}
-		return { libraryName: match[1]!, version: match[2]! };
-	}
-
 	legacyCqlLibraryIdFor(item: any, filePath: string): string {
 		return (item.name || filePath).replace(/[^A-Za-z0-9]/g, '');
 	}
@@ -611,48 +598,36 @@ export class ImportUtilities {
 				}
 			} else if (item.loader === 'cql-as-fhir-library') {
 				const cqlContent = typeof resourceData === 'string' ? resourceData : JSON.stringify(resourceData);
-				const cqlInfo = this.extractCqlLibraryNameAndVersion(cqlContent);
+				const cqlInfo = extractCqlLibraryNameAndVersion(cqlContent);
+				if (!cqlInfo) {
+					throw new Error(
+						`Could not determine CQL library name and version from "${filePath}". ` +
+							`CQL files must declare \`library <name> version '<version>'\`. Import aborted.`
+					);
+				}
+
 				const legacyLibraryId = this.legacyCqlLibraryIdFor(item, filePath);
 				const description = item.description || 'CQL Library loaded from file: ' + filePath;
 
-				if (cqlInfo) {
-					const browserLibraryResource = this.buildCqlLibraryResource(
-						cqlInfo.libraryName,
-						cqlInfo.version,
-						description,
-						cqlContent,
-						fhirBaseUrl
-					);
-					await this.putCqlLibraryResource(
-						fhirBaseUrl,
-						cqlInfo.libraryName,
-						browserLibraryResource,
-						item.name,
-						filePath
-					);
+				const browserLibraryResource = this.buildCqlLibraryResource(
+					cqlInfo.libraryName,
+					cqlInfo.version,
+					description,
+					cqlContent,
+					fhirBaseUrl
+				);
+				await this.putCqlLibraryResource(
+					fhirBaseUrl,
+					cqlInfo.libraryName,
+					browserLibraryResource,
+					item.name,
+					filePath
+				);
 
-					if (legacyLibraryId && legacyLibraryId !== cqlInfo.libraryName) {
-						const legacyResource = this.buildCqlLibraryResource(
-							legacyLibraryId,
-							item.version || '0.0.0',
-							description,
-							cqlContent,
-							fhirBaseUrl
-						);
-						await this.putCqlLibraryResource(
-							fhirBaseUrl,
-							legacyLibraryId,
-							legacyResource,
-							item.name,
-							filePath,
-							'Imported compatibility alias for'
-						);
-					}
-				} else {
-					console.warn(`[WARNING] Could not extract CQL library name and version from "${filePath}". Using legacy manifest-derived Library id "${legacyLibraryId}".`);
+				if (legacyLibraryId && legacyLibraryId !== cqlInfo.libraryName) {
 					const legacyResource = this.buildCqlLibraryResource(
 						legacyLibraryId,
-						item.version || '0.0.0',
+						cqlInfo.version,
 						description,
 						cqlContent,
 						fhirBaseUrl
@@ -662,7 +637,8 @@ export class ImportUtilities {
 						legacyLibraryId,
 						legacyResource,
 						item.name,
-						filePath
+						filePath,
+						'Imported compatibility alias for'
 					);
 				}
 			} else {
