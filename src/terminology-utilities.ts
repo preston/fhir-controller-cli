@@ -1,8 +1,8 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import { FileHandler } from './base/file-handler.js';
 import { TerminologyHandlerFactory } from './terminology/terminology-handler-factory.js';
-import { TerminologyFileInfo } from './types/terminology-config.js';
+import type { TerminologyFileInfo } from './types/terminology-config.js';
 import { SnomedFileReader } from './terminology/snomed-file-reader.js';
 import { SnomedMetadataExtractor } from './terminology/snomed-metadata-extractor.js';
 import { CodeSystemChunker } from './utilities/codesystem-chunker.js';
@@ -195,7 +195,7 @@ export class TerminologyUtilities {
           !file.includes('concepts-chunk')
         );
         if (jsonFiles.length > 0) {
-          jsonFilePath = path.join(filePath, jsonFiles[0]);
+          jsonFilePath = path.join(filePath, jsonFiles[0]!);
           console.info(`${LogPrefixes.STAGE_2_SPLIT} Found existing JSON file in staging directory: ${jsonFilePath}`);
         }
       } else if (this.fileHandler.isStagingDirectory(stagingDir)) {
@@ -206,7 +206,7 @@ export class TerminologyUtilities {
           !file.includes('concepts-chunk')
         );
         if (jsonFiles.length > 0) {
-          jsonFilePath = path.join(stagingDir, jsonFiles[0]);
+          jsonFilePath = path.join(stagingDir, jsonFiles[0]!);
           console.info(`${LogPrefixes.STAGE_2_SPLIT} Found existing JSON file in reused staging directory: ${jsonFilePath}`);
         }
       } else {
@@ -398,7 +398,7 @@ export class TerminologyUtilities {
       throw new Error(`No concept chunk files found in staging directory. Please run Stage 2 first.`);
     }
     
-    const baseFilePath = path.join(stagingDir, baseFiles[0]);
+    const baseFilePath = path.join(stagingDir, baseFiles[0]!);
     console.info(`${LogPrefixes.STAGE_3_UPLOAD} Using base CodeSystem file: ${baseFilePath}`);
     console.info(`${LogPrefixes.STAGE_3_UPLOAD} Found ${chunkFiles.length} concept chunk files`);
     
@@ -427,7 +427,7 @@ export class TerminologyUtilities {
     // Upload concept chunks using delta operations via StagedUploadStrategy
     console.info(`${LogPrefixes.STAGE_3_UPLOAD} Uploading ${chunkFiles.length} concept chunks...`);
     for (let i = 0; i < chunkFiles.length; i++) {
-      const chunkFile = path.join(stagingDir, chunkFiles[i]);
+      const chunkFile = path.join(stagingDir, chunkFiles[i]!);
       
       // Use the existing method from StagedUploadStrategy with chunk info
       await stagedStrategy.applyCodeSystemDeltaAdd(baseCodeSystem.id, fhirUrl, chunkFile, baseCodeSystem.url, baseCodeSystem, { current: i + 1, total: chunkFiles.length });
@@ -481,7 +481,7 @@ export class TerminologyUtilities {
       throw new Error(`No concept chunk files found in staging directory. Please run Stage 2 first.`);
     }
     
-    const baseFilePath = path.join(stagingDir, baseFiles[0]);
+    const baseFilePath = path.join(stagingDir, baseFiles[0]!);
     console.info(`${LogPrefixes.STAGE_3_UPLOAD} Using base CodeSystem file: ${baseFilePath}`);
     console.info(`${LogPrefixes.STAGE_3_UPLOAD} Found ${chunkFiles.length} concept chunk files`);
     
@@ -510,7 +510,7 @@ export class TerminologyUtilities {
     // Upload concept chunks using delta operations via StagedUploadStrategy
     console.info(`${LogPrefixes.STAGE_3_UPLOAD} Uploading ${chunkFiles.length} concept chunks...`);
     for (let i = 0; i < chunkFiles.length; i++) {
-      const chunkFile = path.join(stagingDir, chunkFiles[i]);
+      const chunkFile = path.join(stagingDir, chunkFiles[i]!);
       
       // Use the existing method from StagedUploadStrategy with chunk info
       await stagedStrategy.applyCodeSystemDeltaAdd(baseCodeSystem.id, fhirUrl, chunkFile, baseCodeSystem.url, baseCodeSystem, { current: i + 1, total: chunkFiles.length });

@@ -1,7 +1,7 @@
 // Author: Preston Lee
 
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import axios from 'axios';
 
 export class SyntheaUtilities {
@@ -33,22 +33,24 @@ export class SyntheaUtilities {
 				resolve();
 			});
 		} else {
-			return axios.post(fhirUrl, json, {
-				headers: {
-					'Content-Type': 'application/fhir+json',
-					'Accept': 'application/fhir+json',
-				},
-			}).then((response) => {
+			try {
+				const response = await axios.post(fhirUrl, json, {
+					headers: {
+						'Content-Type': 'application/fhir+json',
+						'Accept': 'application/fhir+json',
+					},
+				});
 				console.log(`[SUCCESS]: ${response.status} ${response.statusText}`, file);
 				// console.log('Response Data:', JSON.stringify(response.data, null, 2));
-			}).catch((error) => {
+			} catch (error: any) {
 				if (error.response) {
 					console.error(`[FAILURE]: ${error.response.status} ${error.response.statusText}`, file);
 					console.error(JSON.stringify(error.response.data, null, 2));
 				} else {
 					console.error(`[ERROR]: ${error.message}`, file);
 				}
-			});
+				throw error;
+			}
 		}
 	}
 

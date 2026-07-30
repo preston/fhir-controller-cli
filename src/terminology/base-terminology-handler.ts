@@ -1,10 +1,10 @@
-import type { CodeSystem, ValueSet } from 'fhir/r4';
+import type { CodeSystem, ValueSet } from '../types/fhir-types.js';
 import { TerminologyProcessor } from '../terminology-processor.js';
 import { FhirClient } from '../base/fhir-client.js';
 import { FileHandler } from '../base/file-handler.js';
 import { UploadStrategyFactory } from '../strategies/upload-strategy-factory.js';
 import { UploadStrategy } from '../strategies/upload-strategy.js';
-import { TerminologyFileInfo } from '../types/terminology-config.js';
+import type { TerminologyFileInfo } from '../types/terminology-config.js';
 import { getTerminologyEntry } from '../constants/terminology-registry.js';
 import { LogPrefixes } from '../constants/log-prefixes.js';
 

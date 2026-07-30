@@ -1,9 +1,9 @@
 // Author: Preston Lee
 
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import axios from 'axios';
-import { UploadStrategy, UploadStrategyConfig } from './upload-strategy.js';
+import { UploadStrategy, type UploadStrategyConfig } from './upload-strategy.js';
 import { CodeSystemChunker } from '../utilities/codesystem-chunker.js';
 import { getTerminologyEntryByCodeSystem } from '../constants/terminology-registry.js';
 import { LogPrefixes } from '../constants/log-prefixes.js';
@@ -216,7 +216,7 @@ export class StagedUploadStrategy extends UploadStrategy {
       // Step 3: Upload concept chunks using delta operations
       console.info(`${LogPrefixes.STAGING} Uploading ${chunkFiles.length} concept chunks...`);
       for (let i = 0; i < chunkFiles.length; i++) {
-        const chunkFile = chunkFiles[i];
+        const chunkFile = chunkFiles[i]!;
         
         await this.applyCodeSystemDeltaAdd(codeSystemId, fhirUrl, chunkFile, baseCodeSystem.url, baseCodeSystem, { current: i + 1, total: chunkFiles.length });
         

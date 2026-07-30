@@ -1,10 +1,10 @@
 // Author: Preston Lee
 
-import fs from 'fs';
-import path from 'path';
-import { createReadStream } from 'fs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { createReadStream } from 'node:fs';
 import csv from 'csv-parser';
-import readline from 'readline';
+import readline from 'node:readline';
 import { LogPrefixes } from '../constants/log-prefixes.js';
 import { LOINC_PROPERTY_CODES } from '../constants/loinc-constants.js';
 
@@ -159,9 +159,12 @@ export class LoincFileReader {
       
       for (let i = pathParts.length - 1; i >= 0; i--) {
         const part = pathParts[i];
+        if (part === undefined) {
+          continue;
+        }
         const versionMatch = part.match(/(\d+\.\d+)/);
         if (versionMatch) {
-          return versionMatch[1];
+          return versionMatch[1]!;
         }
       }
       

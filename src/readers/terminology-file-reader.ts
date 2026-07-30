@@ -1,4 +1,4 @@
-import type { CodeSystem } from 'fhir/r4';
+import type { CodeSystem } from '../types/fhir-types.js';
 
 export interface TerminologyFileReaderConfig {
   verbose: boolean;

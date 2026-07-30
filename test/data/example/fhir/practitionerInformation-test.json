@@ -1,0 +1,55 @@
+{
+  "resourceType": "Bundle",
+  "type": "transaction",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:003d4599-2a5c-3c9c-99a3-40e838b07d63",
+      "resource": {
+        "resourceType": "Practitioner",
+        "id": "003d4599-2a5c-3c9c-99a3-40e838b07d63",
+        "identifier": [
+          {
+            "system": "http://hl7.org/fhir/sid/us-npi",
+            "value": "9999994590"
+          }
+        ],
+        "active": true,
+        "name": [
+          {
+            "family": "Lemke654",
+            "given": ["Lynsey2"],
+            "prefix": ["Dr."]
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Practitioner",
+        "ifNoneExist": "identifier=http://hl7.org/fhir/sid/us-npi|9999994590"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:a2d23e56-8631-fd99-4b86-632025fbf2c8",
+      "resource": {
+        "resourceType": "PractitionerRole",
+        "id": "a2d23e56-8631-fd99-4b86-632025fbf2c8",
+        "practitioner": {
+          "identifier": {
+            "system": "http://hl7.org/fhir/sid/us-npi",
+            "value": "9999994590"
+          }
+        },
+        "organization": {
+          "identifier": {
+            "system": "https://github.com/synthetichealth/synthea",
+            "value": "d0894f6b-78d7-338d-82ad-b63de4d40014"
+          }
+        }
+      },
+      "request": {
+        "method": "POST",
+        "url": "PractitionerRole"
+      }
+    }
+  ]
+}

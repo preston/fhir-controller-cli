@@ -1,6 +1,6 @@
 // Author: Preston Lee
 
-import { UploadStrategy, UploadStrategyConfig } from './upload-strategy.js';
+import { UploadStrategy, type UploadStrategyConfig } from './upload-strategy.js';
 import { LogPrefixes } from '../constants/log-prefixes.js';
 
 export class DirectUploadStrategy extends UploadStrategy {

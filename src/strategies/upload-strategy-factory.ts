@@ -1,6 +1,6 @@
 // Author: Preston Lee
 
-import { UploadStrategy, UploadStrategyConfig } from './upload-strategy.js';
+import { UploadStrategy, type UploadStrategyConfig } from './upload-strategy.js';
 import { DirectUploadStrategy } from './direct-upload-strategy.js';
 import { StagedUploadStrategy } from './staged-upload-strategy.js';
 

@@ -1,4 +1,4 @@
-import { BaseTerminologyHandler, TerminologyHandlerConfig } from './base-terminology-handler.js';
+import { BaseTerminologyHandler, type TerminologyHandlerConfig } from './base-terminology-handler.js';
 import { SnomedHandler } from './snomed-handler.js';
 import { LoincHandler } from './loinc-handler.js';
 import { RxNormHandler } from './rxnorm-handler.js';

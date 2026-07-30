@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
-import { fileURLToPath } from 'url';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
 
 import { program } from 'commander';
 
@@ -12,20 +11,48 @@ import { ImportUtilities } from '../import-utilities.js';
 import { TerminologyUtilities } from '../terminology-utilities.js';
 import { LogPrefixes } from '../constants/log-prefixes.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 let dryRun = false;
 let verbose = false;
 let isShuttingDown = false;
 let activeOperations: Set<Promise<any>> = new Set();
 let importUtils: ImportUtilities | null = null;
-const packageJson = fs.readFileSync(path.join(__dirname, '..', '..', 'package.json'), 'utf8');
+const packageJson = fs.readFileSync(path.join(import.meta.dirname, '..', '..', 'package.json'), 'utf8');
 const packageJsonObject = JSON.parse(packageJson);
 const version = packageJsonObject.version;
 
 const cli = program.version(version)
 	.description('FHIR Controller CLI utilities.');
+
+cli
+	.command('mcp')
+	.description('Run the FHIR Controller MCP server.')
+	.option('--transport <transport>', 'MCP transport to use: http or stdio', 'http')
+	.option('--http', 'Run MCP over Streamable HTTP')
+	.option('--stdio', 'Run MCP over stdio')
+	.option('--host <host>', 'HTTP host to bind', process.env.FHIR_CONTROLLER_MCP_HOST ?? '0.0.0.0')
+	.option('--port <port>', 'HTTP port to bind', process.env.FHIR_CONTROLLER_MCP_PORT ?? process.env.MCP_PORT ?? process.env.PORT ?? '8002')
+	.option('--path <path>', 'HTTP MCP endpoint path', process.env.FHIR_CONTROLLER_MCP_PATH ?? '/mcp')
+	.action(async (options) => {
+		const { parseMcpPort, startMcpServer } = await import('../mcp-server.js');
+		let transport = String(options.transport).toLowerCase();
+		if (options.http) {
+			transport = 'http';
+		}
+		if (options.stdio) {
+			transport = 'stdio';
+		}
+		if (transport !== 'http' && transport !== 'stdio') {
+			console.error(`Invalid MCP transport: ${options.transport}. Must be "http" or "stdio".`);
+			process.exit(1);
+		}
+		await startMcpServer({
+			transport,
+			host: options.host,
+			port: parseMcpPort(options.port),
+			path: options.path,
+			installSignalHandlers: false,
+		});
+	});
 
 cli
 	.command('poll-auditevent-and-trigger-import')

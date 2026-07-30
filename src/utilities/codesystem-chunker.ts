@@ -1,9 +1,9 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import chain from 'stream-chain';
-import streamJson from 'stream-json';
-import pick from 'stream-json/filters/pick.js';
-import streamArray from 'stream-json/streamers/stream-array.js';
+import { parser } from 'stream-json';
+import { pick } from 'stream-json/filters/pick.js';
+import { streamArray } from 'stream-json/streamers/stream-array.js';
 import { LogPrefixes } from '../constants/log-prefixes.js';
 
 export interface CodeSystemChunkerConfig {
@@ -79,7 +79,7 @@ export class CodeSystemChunker {
         // Now process the concepts using streaming JSON parser
         const pipeline = chain([
           fs.createReadStream(sourceFilePath),
-          streamJson.parser(),
+          parser(),
           pick({ filter: 'concept' }),
           streamArray()
         ]);

@@ -1,10 +1,10 @@
 // Author: Preston Lee
 
-import fs from 'fs';
-import path from 'path';
-import type { CodeSystem } from 'fhir/r4';
-import { BaseTerminologyHandler, TerminologyHandlerConfig } from './base-terminology-handler.js';
-import { TerminologyFileInfo } from '../types/terminology-config.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import type { CodeSystem } from '../types/fhir-types.js';
+import { BaseTerminologyHandler, type TerminologyHandlerConfig } from './base-terminology-handler.js';
+import type { TerminologyFileInfo } from '../types/terminology-config.js';
 import { RxNormFileReader } from './rxnorm-file-reader.js';
 import { RXNORM_TERMINOLOGY_INFO } from '../constants/rxnorm-constants.js';
 import { LogPrefixes } from '../constants/log-prefixes.js';
@@ -149,7 +149,7 @@ export class RxNormHandler extends BaseTerminologyHandler {
   }
 
   async checkExists(fhirUrl: string, filePath?: string): Promise<boolean> {
-    const expectedId = this.getExpectedIdsForDirectory(filePath || 'rxnorm-current')[0];
+    const expectedId = this.getExpectedIdsForDirectory(filePath || 'rxnorm-current')[0]!;
 
     if (await this.fhirClient.checkResourceExists(fhirUrl, 'CodeSystem', expectedId)) {
       console.info(`${LogPrefixes.SKIP} RxNorm CodeSystem ${expectedId} already exists on server`);

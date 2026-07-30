@@ -1,10 +1,10 @@
-import fs from 'fs';
-import path from 'path';
-import { createReadStream } from 'fs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { createReadStream } from 'node:fs';
 import csv from 'csv-parser';
-import readline from 'readline';
-import type { CodeSystem, ValueSet, ConceptMap, Coding, CodeableConcept } from 'fhir/r4';
-import { TerminologyProcessorConfig } from './types/terminology-config.js';
+import readline from 'node:readline';
+import type { CodeSystem, CodeableConcept, Coding, ConceptMap, ValueSet } from './types/fhir-types.js';
+import type { TerminologyProcessorConfig } from './types/terminology-config.js';
 import { 
   SNOMED_CONCEPT_IDS, 
   SNOMED_TERMINOLOGY_INFO, 
@@ -212,7 +212,7 @@ export class TerminologyProcessor {
       throw new Error('No concept file found in terminology directory');
     }
     
-    const conceptFile = path.join(terminologyPath, conceptFiles[0]);
+    const conceptFile = path.join(terminologyPath, conceptFiles[0]!);
     console.info(`Reading SNOMED CT concepts from file: ${conceptFile}`);
     
     const concepts: any[] = [];
@@ -258,7 +258,7 @@ export class TerminologyProcessor {
       return [];
     }
     
-    const descriptionFile = path.join(terminologyPath, descriptionFiles[0]);
+    const descriptionFile = path.join(terminologyPath, descriptionFiles[0]!);
     console.info(`Reading SNOMED CT descriptions from file: ${descriptionFile}`);
     
     const descriptions: any[] = [];
@@ -303,7 +303,7 @@ export class TerminologyProcessor {
       return [];
     }
     
-    const relationshipFile = path.join(terminologyPath, relationshipFiles[0]);
+    const relationshipFile = path.join(terminologyPath, relationshipFiles[0]!);
     console.info(`Reading SNOMED CT relationships from file: ${relationshipFile}`);
     
     const relationships: any[] = [];
@@ -349,7 +349,7 @@ export class TerminologyProcessor {
       return [];
     }
     
-    const textDefFile = path.join(terminologyPath, textDefFiles[0]);
+    const textDefFile = path.join(terminologyPath, textDefFiles[0]!);
     console.info(`Reading SNOMED CT text definitions from file: ${textDefFile}`);
     
     const textDefinitions: any[] = [];
@@ -984,7 +984,7 @@ export class TerminologyProcessor {
     try {
       // First try to extract from directory name
       const pathParts = filePath.split('/');
-      const dirName = pathParts[pathParts.length - 1];
+      const dirName = pathParts[pathParts.length - 1] ?? '';
       
       const namespaceMatch = dirName.match(/(US|INT|AU|CA|NL|SE|DK|BE|ES|CH|IE|NZ|PL|PT|BR|MX|AR|CL|CO|PE|UY|VE|EC|BO|PY|GY|SR|TT|JM|BB|BS|BZ|CR|CU|DO|GT|HN|NI|PA|SV|HT|DM|AG|KN|LC|VC|GD|BS|BZ|CR|CU|DO|GT|HN|NI|PA|SV|HT|DM|AG|KN|LC|VC|GD)(\d{7})/);
       if (namespaceMatch) {
@@ -1046,11 +1046,11 @@ export class TerminologyProcessor {
     try {
       // First try to extract from directory name
       const pathParts = filePath.split('/');
-      const dirName = pathParts[pathParts.length - 1];
+      const dirName = pathParts[pathParts.length - 1] ?? '';
       
       const dateMatch = dirName.match(/(\d{8})/);
       if (dateMatch) {
-        const date = dateMatch[1];
+        const date = dateMatch[1]!;
         return date;
       }
       
@@ -1109,9 +1109,12 @@ export class TerminologyProcessor {
       
       for (let i = pathParts.length - 1; i >= 0; i--) {
         const part = pathParts[i];
+        if (part === undefined) {
+          continue;
+        }
         const versionMatch = part.match(/Loinc_(\d+\.\d+)/);
         if (versionMatch) {
-          return versionMatch[1];
+          return versionMatch[1]!;
         }
       }
       
@@ -1128,9 +1131,12 @@ export class TerminologyProcessor {
       
       for (let i = pathParts.length - 1; i >= 0; i--) {
         const part = pathParts[i];
+        if (part === undefined) {
+          continue;
+        }
         const dateMatch = part.match(/(\d{8})/);
         if (dateMatch) {
-          const date = dateMatch[1];
+          const date = dateMatch[1]!;
           return date;
         }
       }

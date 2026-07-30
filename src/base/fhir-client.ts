@@ -1,7 +1,7 @@
 // Author: Preston Lee
 
 import axios from 'axios';
-import type { CodeSystem, ValueSet, ConceptMap } from 'fhir/r4';
+import type { CodeSystem, ConceptMap, ValueSet } from '../types/fhir-types.js';
 
 export interface FhirClientConfig {
   dryRun: boolean;

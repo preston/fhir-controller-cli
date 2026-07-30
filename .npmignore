@@ -13,7 +13,7 @@ paper/
 
 
 
-/jest.config.js
+/vitest.config.ts
 /tsconfig.json
 
 *.tgz

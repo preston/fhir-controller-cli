@@ -19,8 +19,13 @@ steps:
         path: /var/run/docker.sock
     commands:
       - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+<<<<<<< HEAD
       - docker build -t p3000/fhir-controller-cli:${DRONE_COMMIT_BRANCH}-linux-amd64 .
       - docker push p3000/fhir-controller-cli:${DRONE_COMMIT_BRANCH}-linux-amd64
+=======
+      - docker build -t p3000/fhir-controller-cli:${DRONE_COMMIT_BRANCH}-linux-amd64 . --push
+      # - docker push p3000/fhir-controller-cli:${DRONE_COMMIT_BRANCH}-linux-amd64
+>>>>>>> dev
 volumes:
   - name: dockersock
     host:
@@ -46,8 +51,13 @@ steps:
         path: /var/run/docker.sock
     commands:
       - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+<<<<<<< HEAD
       - docker build -t p3000/fhir-controller-cli:${DRONE_COMMIT_BRANCH}-linux-arm64 .
       - docker push p3000/fhir-controller-cli:${DRONE_COMMIT_BRANCH}-linux-arm64
+=======
+      - docker build -t p3000/fhir-controller-cli:${DRONE_COMMIT_BRANCH}-linux-arm64 . --push
+      # - docker push p3000/fhir-controller-cli:${DRONE_COMMIT_BRANCH}-linux-arm64
+>>>>>>> dev
 volumes:
   - name: dockersock
     host:

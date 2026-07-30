@@ -19,5 +19,6 @@ testcases/
 # IDE and editor files
 .cursorrules
 
-data/
 paper/
+
+AGENTS.md

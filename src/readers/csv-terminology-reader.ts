@@ -1,6 +1,6 @@
-import { createReadStream } from 'fs';
+import { createReadStream } from 'node:fs';
 import csv from 'csv-parser';
-import { ITerminologyFileReader, TerminologyFileReaderConfig, TerminologyFileInfo, TerminologyReaderResult } from './terminology-file-reader.js';
+import type { ITerminologyFileReader, TerminologyFileReaderConfig, TerminologyFileInfo, TerminologyReaderResult } from './terminology-file-reader.js';
 import { LOINC_PROPERTY_CODES, LOINC_TERMINOLOGY_INFO } from '../constants/loinc-constants.js';
 import { RXNORM_PROPERTY_CODES, RXNORM_TERMINOLOGY_INFO, RXNORM_RRF_FIELDS } from '../constants/rxnorm-constants.js';
 import { LogPrefixes } from '../constants/log-prefixes.js';

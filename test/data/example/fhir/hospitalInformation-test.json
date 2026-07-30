@@ -1,0 +1,52 @@
+{
+  "resourceType": "Bundle",
+  "type": "transaction",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:d0894f6b-78d7-338d-82ad-b63de4d40014",
+      "resource": {
+        "resourceType": "Organization",
+        "id": "d0894f6b-78d7-338d-82ad-b63de4d40014",
+        "identifier": [
+          {
+            "system": "https://github.com/synthetichealth/synthea",
+            "value": "d0894f6b-78d7-338d-82ad-b63de4d40014"
+          }
+        ],
+        "active": true,
+        "name": "MOUNT AUBURN HOSPITAL"
+      },
+      "request": {
+        "method": "POST",
+        "url": "Organization",
+        "ifNoneExist": "identifier=https://github.com/synthetichealth/synthea|d0894f6b-78d7-338d-82ad-b63de4d40014"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:29551fe0-34ff-3ae2-bb60-e92b77f4e60d",
+      "resource": {
+        "resourceType": "Location",
+        "id": "29551fe0-34ff-3ae2-bb60-e92b77f4e60d",
+        "identifier": [
+          {
+            "system": "https://github.com/synthetichealth/synthea",
+            "value": "29551fe0-34ff-3ae2-bb60-e92b77f4e60d"
+          }
+        ],
+        "status": "active",
+        "name": "MOUNT AUBURN HOSPITAL",
+        "managingOrganization": {
+          "identifier": {
+            "system": "https://github.com/synthetichealth/synthea",
+            "value": "d0894f6b-78d7-338d-82ad-b63de4d40014"
+          }
+        }
+      },
+      "request": {
+        "method": "POST",
+        "url": "Location",
+        "ifNoneExist": "identifier=https://github.com/synthetichealth/synthea|29551fe0-34ff-3ae2-bb60-e92b77f4e60d"
+      }
+    }
+  ]
+}
