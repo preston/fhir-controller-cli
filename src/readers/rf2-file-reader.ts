@@ -1,6 +1,7 @@
-import fs from 'fs';
-import path from 'path';
-import { ITerminologyFileReader, TerminologyFileReaderConfig, TerminologyFileInfo, TerminologyReaderResult } from './terminology-file-reader.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import readline from 'node:readline';
+import type { ITerminologyFileReader, TerminologyFileReaderConfig, TerminologyFileInfo, TerminologyReaderResult } from './terminology-file-reader.js';
 import { SnomedFileReader } from '../terminology/snomed-file-reader.js';
 import { SnomedMetadataExtractor } from '../terminology/snomed-metadata-extractor.js';
 import { SnomedConceptBuilder } from '../terminology/snomed-concept-builder.js';
@@ -88,13 +89,12 @@ export class Rf2FileReader implements ITerminologyFileReader {
       throw new Error(`No concept file found in ${terminologyPath}`);
     }
     
-    const conceptFile = path.join(terminologyPath, conceptFiles[0]);
+    const conceptFile = path.join(terminologyPath, conceptFiles[0]!);
     const concepts: any[] = [];
     let processedCount = 0;
 
     return new Promise((resolve, reject) => {
       const fileStream = fs.createReadStream(conceptFile, { encoding: 'utf8' });
-      const readline = require('readline');
       const rl = readline.createInterface({
         input: fileStream,
         crlfDelay: Infinity
@@ -143,7 +143,11 @@ export class Rf2FileReader implements ITerminologyFileReader {
       return null;
     }
 
-    const [id, effectiveTime, active, moduleId, definitionStatusId] = fields;
+    const id = fields[0]!;
+    const effectiveTime = fields[1]!;
+    const active = fields[2]!;
+    const moduleId = fields[3]!;
+    const definitionStatusId = fields[4]!;
 
     if (active !== '1') {
       return null; // Skip inactive concepts

@@ -1,6 +1,6 @@
-import fs from 'fs';
-import path from 'path';
-import readline from 'readline';
+import fs from 'node:fs';
+import path from 'node:path';
+import readline from 'node:readline';
 import { LogPrefixes } from '../constants/log-prefixes.js';
 
 export interface SnomedFileReaderConfig {
@@ -59,7 +59,7 @@ export class SnomedFileReader {
       return new Map();
     }
     
-    const descriptionFile = path.join(terminologyPath, descriptionFiles[0]);
+    const descriptionFile = path.join(terminologyPath, descriptionFiles[0]!);
     if (this.config.verbose) {
       console.info(`${LogPrefixes.STAGE_1_PREPROCESS} Loading descriptions from: ${descriptionFile}`);
     }
@@ -143,7 +143,7 @@ export class SnomedFileReader {
       return new Map();
     }
     
-    const relationshipFile = path.join(terminologyPath, relationshipFiles[0]);
+    const relationshipFile = path.join(terminologyPath, relationshipFiles[0]!);
     if (this.config.verbose) {
       console.info(`${LogPrefixes.STAGE_1_PREPROCESS} Loading relationships from: ${relationshipFile}`);
     }
@@ -234,7 +234,7 @@ export class SnomedFileReader {
       throw new Error(`No concept file found in ${terminologyPath}`);
     }
     
-    const conceptFile = path.join(terminologyPath, conceptFiles[0]);
+    const conceptFile = path.join(terminologyPath, conceptFiles[0]!);
     if (this.config.verbose) {
       console.info(`${LogPrefixes.STAGE_1_PREPROCESS} Using concept file: ${conceptFile}`);
     }
@@ -317,7 +317,11 @@ export class SnomedFileReader {
     }
 
     // SNOMED CT RF2 concept file format: id	effectiveTime	active	moduleId	definitionStatusId
-    const [id, effectiveTime, active, moduleId, definitionStatusId] = fields;
+    const id = fields[0]!;
+    const effectiveTime = fields[1]!;
+    const active = fields[2]!;
+    const moduleId = fields[3]!;
+    const definitionStatusId = fields[4]!;
 
     // Include all concepts regardless of active status
     const conceptDescriptions = descriptions.get(id) || [];

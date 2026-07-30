@@ -1,8 +1,9 @@
 // Author: Preston Lee
 
-import fs from 'fs';
-import path from 'path';
-import { TerminologyFileInfo } from '../types/terminology-config.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import type { TerminologyFileInfo } from '../types/terminology-config.js';
+import { SnomedMetadataExtractor } from '../terminology/snomed-metadata-extractor.js';
 
 export interface FileHandlerConfig {
   verbose: boolean;
@@ -410,7 +411,6 @@ export class FileHandler {
    */
   findSnomedJsonFile(originalFilePath: string, tempDir: string): string | null {
     // Extract namespace and version from the original file path
-    const { SnomedMetadataExtractor } = require('../terminology/snomed-metadata-extractor.js');
     const version = SnomedMetadataExtractor.extractSnomedVersion(originalFilePath);
     const namespace = SnomedMetadataExtractor.extractSnomedNamespace(originalFilePath);
     const versionId = version || 'current';

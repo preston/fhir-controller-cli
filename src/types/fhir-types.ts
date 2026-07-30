@@ -1,7 +1,15 @@
 // Author: Preston Lee
 
-// Re-export FHIR types for convenience
-export type { CodeSystem, ValueSet, ConceptMap, Coding, CodeableConcept } from 'fhir/r4';
+// Re-export FHIR R4 types from DefinitelyTyped (resolved via tsconfig paths).
+export type {
+	AuditEvent,
+	Bundle,
+	CodeSystem,
+	CodeableConcept,
+	Coding,
+	ConceptMap,
+	ValueSet,
+} from 'fhir/r4';
 
 // Additional FHIR-related interfaces
 export interface FhirResource {

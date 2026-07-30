@@ -1,21 +1,25 @@
 {
   "name": "fhir-controller-cli",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "FHIR Controller CLI utilities.",
   "type": "module",
-  "main": "index.js",
   "bin": {
     "fhir-controller": "./build/bin/fhir-controller.js",
     "fhir-controller-mcp": "./build/bin/fhir-controller-mcp.js"
   },
+  "engines": {
+    "node": ">=26"
+  },
   "scripts": {
     "clean": "rm -rf ./build",
-    "compile": "npx tsc && chmod +x ./build/bin/*",
+    "typecheck": "tsc",
+    "compile": "tsc -p tsconfig.build.json && chmod +x ./build/bin/*",
     "copy-files": "mkdir -p build/assets && cp -R src/assets/ build/assets/",
-    "build": "npm run clean && npm run compile && npm run copy-files",
+    "build": "npm run typecheck && npm run clean && npm run compile && npm run copy-files",
+    "prepack": "npm run build",
     "package": "npm run build && npm pack",
-    "test": "jest",
-    "test-watch": "nodemon --watch '{src,test}/**' --ext 'ts,md,json' --exec 'npx jest'"
+    "test": "npm run typecheck && jest",
+    "test-watch": "nodemon --watch '{src,test}/**' --ext 'ts,md,json' --exec 'jest'"
   },
   "repository": {
     "type": "git",
@@ -37,21 +41,22 @@
   },
   "homepage": "https://github.com/preston/fhir-controller-cli#README",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "axios": "^1.16.1",
-    "commander": "^14.0.3",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "axios": "^1.19.0",
+    "commander": "^15.0.0",
     "csv-parser": "^3.2.1",
-    "stream-json": "^2.1.0",
-    "ts-progress": "^0.1.9",
+    "stream-chain": "^4.2.5",
+    "stream-json": "^3.5.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/fhir": "^0.0.41",
+    "@swc/core": "^1.15.47",
+    "@swc/jest": "^0.2.39",
+    "@types/fhir": "^0.0.44",
     "@types/jest": "^30.0.0",
-    "@types/node": "^25.8.0",
-    "@types/stream-json": "^1.7.8",
+    "@types/node": "^26.1.2",
+    "jest": "^30.4.2",
     "nodemon": "^3.1.14",
-    "ts-jest": "^29.4.9",
-    "ts-node": "^10.9.2"
+    "typescript": "^7.0.2"
   }
 }

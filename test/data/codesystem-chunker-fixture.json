@@ -1,0 +1,16 @@
+{
+  "resourceType": "CodeSystem",
+  "id": "test-codesystem",
+  "url": "http://example.org/fhir/CodeSystem/test",
+  "version": "1.0",
+  "name": "TestCodeSystem",
+  "status": "active",
+  "content": "complete",
+  "concept": [
+    { "code": "A", "display": "Concept A" },
+    { "code": "B", "display": "Concept B" },
+    { "code": "C", "display": "Concept C" },
+    { "code": "D", "display": "Concept D" },
+    { "code": "E", "display": "Concept E" }
+  ]
+}

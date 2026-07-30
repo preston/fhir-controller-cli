@@ -1,13 +1,16 @@
 // Author: Preston Lee
 
-import path from 'path';
-import { exec, ExecException } from 'child_process';
+import path from 'node:path';
+import { exec, type ExecException } from 'node:child_process';
+import { describe, expect, test } from '@jest/globals';
 import { ImportUtilities } from '../src/import-utilities.js';
+
+const testDir = import.meta.dirname;
 
 describe('`version` subcommand', () => {
 
     test('should report correct package version', async () => {
-        let result = (await cli(['-V'], __dirname)).stdout.trim();
+        let result = (await cli(['-V'], testDir)).stdout.trim();
         // console.log("RESULTS: ", result);
         // let json = JSON.parse(result);
         expect(result).toBeTruthy();
@@ -267,13 +270,13 @@ describe('server reset helpers', () => {
 
 });
 
-function cli(args: string[], cwd: string = __dirname) {
+function cli(args: string[], cwd: string = testDir) {
     return new Promise<{ code: number, error: ExecException | null, stdout: string, stderr: string }>(resolve => {
         exec(`node ${path.resolve('build/bin/fhir-controller.js')} ${args.join(' ')}`,
             { cwd },
             (error, stdout, stderr) => {
                 resolve({
-                    code: error && error.code ? error.code : 0,
+                    code: error?.code != null ? Number(error.code) : 0,
                     error,
                     stdout,
                     stderr

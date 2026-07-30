@@ -1,13 +1,14 @@
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
-import { createServer, Server } from 'http';
-import { AddressInfo } from 'net';
-import { execFile, ExecFileException } from 'child_process';
-import { pathToFileURL } from 'url';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { createServer, type Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { execFile, type ExecFileException } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
+import { afterAll, beforeAll, describe, expect, jest, test } from '@jest/globals';
 import axios from 'axios';
 
-const projectRoot = path.resolve(__dirname, '..');
+const projectRoot = path.resolve(import.meta.dirname, '..');
 const cliPath = path.join(projectRoot, 'build/bin/fhir-controller.js');
 const defaultFhirBaseUrl = 'http://127.0.0.1:8080/fhir/';
 const fhirBaseUrl = normalizeFhirBaseUrl(process.env.FHIR_CONTROLLER_TEST_FHIR_URL ?? defaultFhirBaseUrl);
@@ -568,7 +569,8 @@ function normalizeFhirBaseUrl(url: string): string {
 
 function lastIndexWhere<T>(items: T[], predicate: (item: T) => boolean): number {
 	for (let i = items.length - 1; i >= 0; i--) {
-		if (predicate(items[i])) {
+		const item = items[i];
+		if (item !== undefined && predicate(item)) {
 			return i;
 		}
 	}

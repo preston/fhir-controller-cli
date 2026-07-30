@@ -1,11 +1,11 @@
 // Author: Preston Lee
 
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import axios from 'axios';
-import type { Bundle, AuditEvent } from 'fhir/r4';
+import type { Bundle, AuditEvent } from './types/fhir-types.js';
 
 interface CqlLibraryInfo {
 	libraryName: string;
@@ -376,7 +376,7 @@ export class ImportUtilities {
 		if (!match) {
 			return null;
 		}
-		return { libraryName: match[1], version: match[2] };
+		return { libraryName: match[1]!, version: match[2]! };
 	}
 
 	legacyCqlLibraryIdFor(item: any, filePath: string): string {

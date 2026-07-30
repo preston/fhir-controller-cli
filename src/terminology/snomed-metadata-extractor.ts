@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import { SNOMED_TERMINOLOGY_INFO } from '../constants/snomed-constants.js';
 
 export class SnomedMetadataExtractor {
@@ -28,11 +28,11 @@ export class SnomedMetadataExtractor {
   static extractSnomedVersion(filePath: string): string {
     try {
       const pathParts = filePath.split('/');
-      const dirName = pathParts[pathParts.length - 1];
+      const dirName = pathParts[pathParts.length - 1] ?? '';
       
       const dateMatch = dirName.match(/(\d{8})/);
       if (dateMatch) {
-        const date = dateMatch[1];
+        const date = dateMatch[1]!;
         return date;
       }
       
@@ -55,7 +55,7 @@ export class SnomedMetadataExtractor {
   static extractSnomedNamespace(filePath: string): string {
     try {
       const pathParts = filePath.split('/');
-      const dirName = pathParts[pathParts.length - 1];
+      const dirName = pathParts[pathParts.length - 1] ?? '';
       
       const namespaceMatch = dirName.match(/(US|INT|AU|CA|NL|SE|DK|BE|ES|CH|IE|NZ|PL|PT|BR|MX|AR|CL|CO|PE|UY|VE|EC|BO|PY|GY|SR|TT|JM|BB|BS|BZ|CR|CU|DO|GT|HN|NI|PA|SV|HT|DM|AG|KN|LC|VC|GD)(\d{7})/);
       if (namespaceMatch) {
@@ -141,8 +141,7 @@ export class SnomedMetadataExtractor {
         for (const line of lines) {
           const versionMatch = line.match(/(\d{8})/);
           if (versionMatch) {
-            const date = versionMatch[1];
-            return date;
+            return versionMatch[1]!;
           }
         }
       }

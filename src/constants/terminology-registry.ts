@@ -41,13 +41,13 @@ export function getTerminologyEntry(terminologyType: string): TerminologyRegistr
 export function getTerminologyEntryByCodeSystem(codeSystem: any): TerminologyRegistryEntry | null {
   // Check by ID patterns
   if (codeSystem.id?.startsWith('sct-') || codeSystem.url === SNOMED_TERMINOLOGY_INFO.fhirUrls.system) {
-    return TERMINOLOGY_REGISTRY[SNOMED_TERMINOLOGY_INFO.identity.terminologyType];
+    return TERMINOLOGY_REGISTRY[SNOMED_TERMINOLOGY_INFO.identity.terminologyType] ?? null;
   }
   if (codeSystem.id?.startsWith('loinc-') || codeSystem.url === LOINC_TERMINOLOGY_INFO.fhirUrls.system) {
-    return TERMINOLOGY_REGISTRY[LOINC_TERMINOLOGY_INFO.identity.terminologyType];
+    return TERMINOLOGY_REGISTRY[LOINC_TERMINOLOGY_INFO.identity.terminologyType] ?? null;
   }
   if (codeSystem.id?.startsWith('rxnorm-') || codeSystem.url === RXNORM_TERMINOLOGY_INFO.fhirUrls.system) {
-    return TERMINOLOGY_REGISTRY[RXNORM_TERMINOLOGY_INFO.identity.terminologyType];
+    return TERMINOLOGY_REGISTRY[RXNORM_TERMINOLOGY_INFO.identity.terminologyType] ?? null;
   }
   
   return null;

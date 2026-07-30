@@ -1,9 +1,8 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { inspect } from 'util';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { inspect } from 'node:util';
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -16,9 +15,7 @@ import { SyntheaUtilities } from './synthea-utilities.js';
 import { TerminologyUtilities } from './terminology-utilities.js';
 import { LogPrefixes } from './constants/log-prefixes.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const packageJson = fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8');
+const packageJson = fs.readFileSync(path.join(import.meta.dirname, '..', 'package.json'), 'utf8');
 const version = JSON.parse(packageJson).version;
 
 const defaultAuditEventSystem = 'http://dicom.nema.org/resources/ontology/DCM';
@@ -91,11 +88,11 @@ export function createFhirControllerMcpServer() {
 		{
 			title: 'Reset FHIR Server',
 			description: 'Reset server data using the CLI reset drivers. Defaults to dry-run mode.',
-			inputSchema: {
+			inputSchema: z.object({
 				fhirUrl: z.string().min(1).describe('Base URL of the FHIR server, such as http://localhost:8080/fhir.'),
 				driver: z.enum(['hapi-fhir', 'wild-fhir', 'hapi', 'wildfhir']).describe('Reset driver to use.'),
 				dryRun: z.boolean().default(true).describe('When true, return the request that would be sent without posting it.'),
-			},
+			}),
 		},
 		async ({ fhirUrl, driver, dryRun }) => runCapturedTool('FHIR server reset completed.', async () => {
 			const utils = new ImportUtilities(dryRun, false);
@@ -117,11 +114,11 @@ export function createFhirControllerMcpServer() {
 		{
 			title: 'Evaluate CQL Library',
 			description: 'Evaluate a FHIR Library resource with the browser-compatible subject parameter shape.',
-			inputSchema: {
+			inputSchema: z.object({
 				fhirUrl: z.string().min(1).describe('Base URL of the FHIR server.'),
 				libraryId: z.string().min(1).describe('FHIR Library id to evaluate.'),
 				subject: z.string().min(1).describe('Subject value, such as Patient/123 or 123.'),
-			},
+			}),
 		},
 		async ({ fhirUrl, libraryId, subject }) => runCapturedTool('CQL evaluation completed.', async () => {
 			const utils = new ImportUtilities(false, false);
@@ -134,11 +131,11 @@ export function createFhirControllerMcpServer() {
 		{
 			title: 'Upload Synthea Directory',
 			description: 'Upload Synthea-generated FHIR JSON files in dependency order. Defaults to dry-run mode.',
-			inputSchema: {
+			inputSchema: z.object({
 				directory: z.string().min(1).describe('Directory containing Synthea FHIR JSON output.'),
 				fhirUrl: z.string().min(1).describe('FHIR server URL to post resources to.'),
 				dryRun: z.boolean().default(true).describe('When true, log files that would be uploaded without posting them.'),
-			},
+			}),
 		},
 		async ({ directory, fhirUrl, dryRun }) => runCapturedTool('Synthea upload completed.', async () => {
 			const resolvedDirectory = safeFilePathFor(directory);
@@ -153,7 +150,7 @@ export function createFhirControllerMcpServer() {
 		{
 			title: 'Poll AuditEvent And Trigger Import',
 			description: 'Run one AuditEvent poll/import cycle from a stack manifest. Use the CLI binary for indefinite polling.',
-			inputSchema: {
+			inputSchema: z.object({
 				manifestRef: z.string().min(1).describe('HTTP(S), file://, or local path reference to stack.json.'),
 				fhirUrl: z.string().min(1).describe('FHIR server URL to poll and import into.'),
 				auditEventSystem: z.string().default(defaultAuditEventSystem).describe('AuditEvent type system to search and create.'),
@@ -161,7 +158,7 @@ export function createFhirControllerMcpServer() {
 				scenarioId: z.string().optional().describe('Optional manifest scenario id. Use default for browser default behavior.'),
 				verbose: z.boolean().default(false).describe('Include verbose CLI diagnostics in captured logs.'),
 				dryRun: z.boolean().default(true).describe('When true, log import actions without posting resources.'),
-			},
+			}),
 		},
 		async ({ manifestRef, fhirUrl, auditEventSystem, auditEventCode, scenarioId, verbose, dryRun }) =>
 			runCapturedTool('AuditEvent poll/import cycle completed.', async () => {
@@ -197,7 +194,7 @@ export function createFhirControllerMcpServer() {
 		{
 			title: 'Import Terminology',
 			description: 'Import SNOMED CT, LOINC, or RxNorm terminology using the staged CLI workflow. Defaults to dry-run mode.',
-			inputSchema: {
+			inputSchema: z.object({
 				filePath: z.string().min(1).describe('Terminology file or directory path.'),
 				fhirUrl: z.string().min(1).describe('FHIR server URL to upload to.'),
 				tempDir: z.string().min(1).describe('Temporary directory for staged terminology files.'),
@@ -210,7 +207,7 @@ export function createFhirControllerMcpServer() {
 				skipPreprocess: z.boolean().default(false).describe('Use existing staged preprocessing output.'),
 				skipSplit: z.boolean().default(false).describe('Use existing split files.'),
 				skipUpload: z.boolean().default(false).describe('Only preprocess and split; do not upload.'),
-			},
+			}),
 		},
 		async (args) => runCapturedTool('Terminology import completed.', async () => runTerminologyImport(args))
 	);
@@ -418,6 +415,9 @@ function parseMcpCliOptions(args: string[]): ParsedMcpCliOptions {
 
 	for (let i = 0; i < args.length; i++) {
 		const arg = args[i];
+		if (arg === undefined) {
+			continue;
+		}
 		if (arg === '--help' || arg === '-h') {
 			options.help = true;
 		} else if (arg === '--http') {

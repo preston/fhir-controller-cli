@@ -1,8 +1,8 @@
-import fs from 'fs';
-import path from 'path';
-import type { CodeSystem } from 'fhir/r4';
-import { BaseTerminologyHandler, TerminologyHandlerConfig } from './base-terminology-handler.js';
-import { TerminologyFileInfo } from '../types/terminology-config.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import type { CodeSystem } from '../types/fhir-types.js';
+import { BaseTerminologyHandler, type TerminologyHandlerConfig } from './base-terminology-handler.js';
+import type { TerminologyFileInfo } from '../types/terminology-config.js';
 import { SnomedFileReader } from './snomed-file-reader.js';
 import { SnomedMetadataExtractor } from './snomed-metadata-extractor.js';
 import { SNOMED_TERMINOLOGY_INFO } from '../constants/snomed-constants.js';

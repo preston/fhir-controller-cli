@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
-import { fileURLToPath } from 'url';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
 
 import { program } from 'commander';
 
@@ -12,15 +11,12 @@ import { ImportUtilities } from '../import-utilities.js';
 import { TerminologyUtilities } from '../terminology-utilities.js';
 import { LogPrefixes } from '../constants/log-prefixes.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 let dryRun = false;
 let verbose = false;
 let isShuttingDown = false;
 let activeOperations: Set<Promise<any>> = new Set();
 let importUtils: ImportUtilities | null = null;
-const packageJson = fs.readFileSync(path.join(__dirname, '..', '..', 'package.json'), 'utf8');
+const packageJson = fs.readFileSync(path.join(import.meta.dirname, '..', '..', 'package.json'), 'utf8');
 const packageJsonObject = JSON.parse(packageJson);
 const version = packageJsonObject.version;
 
