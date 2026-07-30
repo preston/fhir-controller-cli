@@ -10,8 +10,8 @@
   ],
   "data": [
     {
-      "file": "fhir/Patient 1 - Adrian Allen1.json",
-      "name": "Patient 1 - Adrian Allen",
+      "file": "fhir/patient-test.json",
+      "name": "patient-test",
       "loader": "fhir-bundle",
       "load": true,
       "priority": 10,

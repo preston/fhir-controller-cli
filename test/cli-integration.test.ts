@@ -36,17 +36,17 @@ describe('CLI fixture smoke tests', () => {
 		expect(result.stdout).toContain('Dry run enabled. No resources will be uploaded.');
 		expect(result.stdout).toContain('Dry run: Would have uploaded hospitalInformation');
 		expect(result.stdout).toContain('Dry run: Would have uploaded practitionerInformation');
-		expect(result.stdout).toContain('Dry run: Would have uploaded Patient 1 - Adrian Allen1.json');
+		expect(result.stdout).toContain('Dry run: Would have uploaded patient-test.json');
 		expect(result.stdout).toContain('Done');
 		expect(result.stdout.indexOf('hospitalInformation')).toBeLessThan(result.stdout.indexOf('practitionerInformation'));
-		expect(result.stdout.indexOf('practitionerInformation')).toBeLessThan(result.stdout.indexOf('Patient 1 - Adrian Allen1.json'));
+		expect(result.stdout.indexOf('practitionerInformation')).toBeLessThan(result.stdout.indexOf('patient-test.json'));
 
 		const uploadedFiles = result.stdout
 			.split('\n')
 			.filter(line => line.startsWith('Dry run: Would have uploaded '))
 			.map(line => line.replace('Dry run: Would have uploaded ', '').trim());
 		const firstPractitionerIndex = uploadedFiles.findIndex(file => file.startsWith('practitionerInformation'));
-		const firstPatientIndex = uploadedFiles.findIndex(file => file.startsWith('Patient '));
+		const firstPatientIndex = uploadedFiles.findIndex(file => file.startsWith('patient'));
 		const lastHospitalIndex = lastIndexWhere(uploadedFiles, file => file.startsWith('hospitalInformation'));
 		const lastPractitionerIndex = lastIndexWhere(uploadedFiles, file => file.startsWith('practitionerInformation'));
 
@@ -218,7 +218,7 @@ describe('CLI against a live FHIR test server', () => {
 		expect(result.stderr).toBe('');
 		expect(result.stdout).toContain('Single poll cycle (--exit)');
 		expect(result.stdout).toContain(`Scenario "default": importing 2 of 2 manifest rows with load=true`);
-		expect(result.stdout).toContain('[DRY RUN] Would POST bundle "Patient 1 - Adrian Allen"');
+		expect(result.stdout).toContain('[DRY RUN] Would POST bundle "patient-test"');
 		expect(result.stdout).toContain('[DRY RUN] Would PUT Library "HelloWorld"');
 		expect(result.stdout).toContain('[DRY RUN] Would POST AuditEvent');
 		expect(result.stdout).toContain('Single poll cycle (--exit): finished. Exiting.');
@@ -393,7 +393,7 @@ describe('CLI against a live FHIR test server', () => {
 			driver: 'hapi',
 			data: [
 				{
-					file: path.join(syntheaFixtureDir, 'Patient 1 - Adrian Allen1.json'),
+					file: path.join(syntheaFixtureDir, 'patient-test.json'),
 					name: 'Patient 1 - Adrian Allen',
 					loader: 'fhir-bundle',
 					load: true,
@@ -434,7 +434,7 @@ describe('CLI against a live FHIR test server', () => {
 			driver: 'hapi',
 			data: [
 				{
-					file: path.join(syntheaFixtureDir, 'Patient 1 - Adrian Allen1.json'),
+					file: path.join(syntheaFixtureDir, 'patient-test.json'),
 					name: 'Patient 1 - Adrian Allen',
 					loader: 'fhir-bundle',
 					load: true,
@@ -489,7 +489,7 @@ describe('CLI against a live FHIR test server', () => {
 		expect(result.code).toBe(0);
 		expect(result.stderr).toBe('');
 		expect(result.stdout).toContain(`Scenario "default": importing 2 of 2 manifest rows with load=true`);
-		expect(result.stdout).toContain('[DRY RUN] Would POST bundle "Patient 1 - Adrian Allen"');
+		expect(result.stdout).toContain('[DRY RUN] Would POST bundle "patient-test"');
 		expect(result.stdout).toContain('[DRY RUN] Would POST AuditEvent');
 	});
 
@@ -500,7 +500,7 @@ describe('CLI against a live FHIR test server', () => {
 			driver: 'hapi',
 			data: [
 				{
-					file: pathToFileURL(path.join(syntheaFixtureDir, 'Patient 1 - Adrian Allen1.json')).href,
+					file: pathToFileURL(path.join(syntheaFixtureDir, 'patient-test.json')).href,
 					name: 'Patient 1 - Adrian Allen',
 					loader: 'fhir-bundle',
 					load: true,
@@ -597,7 +597,7 @@ function writeTextFile(fileName: string, content: string): string {
 
 function buildBundleManifestRow(name: string, priority: number, scenarios?: string[], load: boolean = true): any {
 	return {
-		file: path.join(syntheaFixtureDir, 'Patient 1 - Adrian Allen1.json'),
+		file: path.join(syntheaFixtureDir, 'patient-test.json'),
 		name,
 		loader: 'fhir-bundle',
 		load,
