@@ -257,7 +257,7 @@ tsx src/bin/fhir-controller.ts ...
 
 ## Test Suite
 
-The Jest suite includes unit/helper tests plus CLI integration coverage for fixture data under `test/data/`. By default, live CLI tests use a local FHIR server at `http://127.0.0.1:8080/fhir/`.
+The Vitest suite includes unit/helper tests plus CLI integration coverage for fixture data under `test/data/`. By default, live CLI tests use a local FHIR server at `http://127.0.0.1:8080/fhir/`.
 
 ```sh
 # Build the CLI used by integration tests

@@ -5,7 +5,7 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { execFile, type ExecFileException } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
-import { afterAll, beforeAll, describe, expect, jest, test } from '@jest/globals';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import axios from 'axios';
 
 const projectRoot = path.resolve(import.meta.dirname, '..');
@@ -16,8 +16,6 @@ const skipLiveTests = /^(1|true|yes)$/i.test(process.env.FHIR_CONTROLLER_SKIP_LI
 const syntheaFixtureDir = path.join(projectRoot, 'test/data/example/fhir');
 const manifestFixturePath = path.join(projectRoot, 'test/data/example/stack.json');
 const tempDirs: string[] = [];
-
-jest.setTimeout(90000);
 
 afterAll(() => {
 	for (const dir of tempDirs) {
@@ -203,7 +201,7 @@ describe('CLI against a live FHIR test server', () => {
 	});
 
 	maybeTest('one-shot poll import dry run loads the local manifest and does not mutate the server', async () => {
-		const auditEventCode = `cli-jest-${Date.now()}`;
+		const auditEventCode = `cli-vitest-${Date.now()}`;
 		const result = await runCli([
 			'poll-auditevent-and-trigger-import',
 			fhirBaseUrl,
@@ -227,7 +225,7 @@ describe('CLI against a live FHIR test server', () => {
 	});
 
 	maybeTest('one-shot poll import preserves legacy no-scenario behavior by importing every load=true row', async () => {
-		const auditEventCode = `cli-jest-legacy-all-${Date.now()}`;
+		const auditEventCode = `cli-vitest-legacy-all-${Date.now()}`;
 		const manifestPath = writeManifest({
 			fhir_base_url: fhirBaseUrl,
 			driver: 'hapi',
@@ -264,7 +262,7 @@ describe('CLI against a live FHIR test server', () => {
 	});
 
 	maybeTest('one-shot poll import preserves browser default scenario compatibility', async () => {
-		const auditEventCode = `cli-jest-default-scenario-${Date.now()}`;
+		const auditEventCode = `cli-vitest-default-scenario-${Date.now()}`;
 		const manifestPath = writeManifest({
 			fhir_base_url: fhirBaseUrl,
 			driver: 'hapi',
@@ -299,7 +297,7 @@ describe('CLI against a live FHIR test server', () => {
 	});
 
 	maybeTest('one-shot poll import writes CQL compatibility alias when manifest id differs from CQL library name', async () => {
-		const auditEventCode = `cli-jest-cql-alias-${Date.now()}`;
+		const auditEventCode = `cli-vitest-cql-alias-${Date.now()}`;
 		const cqlPath = writeTextFile(
 			'browser-library.cql',
 			[
@@ -344,7 +342,7 @@ describe('CLI against a live FHIR test server', () => {
 	});
 
 	maybeTest('one-shot poll import falls back to legacy CQL Library id when no versioned declaration exists', async () => {
-		const auditEventCode = `cli-jest-cql-legacy-${Date.now()}`;
+		const auditEventCode = `cli-vitest-cql-legacy-${Date.now()}`;
 		const cqlPath = writeTextFile(
 			'legacy-library.cql',
 			[
@@ -389,7 +387,7 @@ describe('CLI against a live FHIR test server', () => {
 	});
 
 	maybeTest('one-shot poll import writes fixture data and an AuditEvent marker', async () => {
-		const auditEventCode = `cli-jest-live-${Date.now()}`;
+		const auditEventCode = `cli-vitest-live-${Date.now()}`;
 		const manifestPath = writeManifest({
 			fhir_base_url: fhirBaseUrl,
 			driver: 'hapi',
@@ -430,7 +428,7 @@ describe('CLI against a live FHIR test server', () => {
 	});
 
 	maybeTest('one-shot poll import skips when a matching AuditEvent already exists', async () => {
-		const auditEventCode = `cli-jest-existing-${Date.now()}`;
+		const auditEventCode = `cli-vitest-existing-${Date.now()}`;
 		const manifestPath = writeManifest({
 			fhir_base_url: fhirBaseUrl,
 			driver: 'hapi',
@@ -473,7 +471,7 @@ describe('CLI against a live FHIR test server', () => {
 	});
 
 	maybeTest('one-shot poll import supports file URL manifests', async () => {
-		const auditEventCode = `cli-jest-file-url-${Date.now()}`;
+		const auditEventCode = `cli-vitest-file-url-${Date.now()}`;
 		const manifestUrl = pathToFileURL(manifestFixturePath).href;
 
 		const result = await runCli([
@@ -496,7 +494,7 @@ describe('CLI against a live FHIR test server', () => {
 	});
 
 	maybeTest('one-shot poll import supports HTTP manifests', async () => {
-		const auditEventCode = `cli-jest-http-manifest-${Date.now()}`;
+		const auditEventCode = `cli-vitest-http-manifest-${Date.now()}`;
 		const server = await serveJsonManifest({
 			fhir_base_url: fhirBaseUrl,
 			driver: 'hapi',
@@ -532,7 +530,7 @@ describe('CLI against a live FHIR test server', () => {
 	});
 
 	maybeTest('one-shot poll import fails when a selected data file is missing', async () => {
-		const auditEventCode = `cli-jest-missing-data-${Date.now()}`;
+		const auditEventCode = `cli-vitest-missing-data-${Date.now()}`;
 		const manifestPath = writeManifest({
 			fhir_base_url: fhirBaseUrl,
 			driver: 'hapi',
@@ -578,7 +576,7 @@ function lastIndexWhere<T>(items: T[], predicate: (item: T) => boolean): number 
 }
 
 function makeTempDir(): string {
-	const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fhir-controller-cli-jest-'));
+	const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fhir-controller-cli-vitest-'));
 	tempDirs.push(dir);
 	return dir;
 }

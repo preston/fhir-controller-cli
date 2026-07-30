@@ -2,7 +2,7 @@
 
 import path from 'node:path';
 import { exec, type ExecException } from 'node:child_process';
-import { describe, expect, test } from '@jest/globals';
+import { describe, expect, test } from 'vitest';
 import { ImportUtilities } from '../src/import-utilities.js';
 
 const testDir = import.meta.dirname;
@@ -16,16 +16,6 @@ describe('`version` subcommand', () => {
         expect(result).toBeTruthy();
     });
 
-});
-
-describe('`server` subcommand', () => {
-
-    // test('should fail without argument', async () => {
-    //     let out = (await cli(['server'], __dirname));
-    //     expect(out.stdout.length).toBe(0);
-    //     expect(out.stderr.length).toBeGreaterThanOrEqual(0);
-    //     expect(out.code).toBe(1);
-    // });
 });
 
 describe('scenario manifest row selection', () => {
